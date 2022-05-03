@@ -1,5 +1,5 @@
 name: "VA_Project_Group_12"
-title: "VisualAnalysisofEconomy"
+title: "Visual Analysis of Economy"
 description: |
   VisualAnalysisofEconomy
 output_dir: "_site"
@@ -9,4 +9,7 @@ navbar:
       href: index.html
     - text: "About"
       href: about.html
+  left:
+  - text: "Project Proposal"
+  - href: "Proposal"
 output: distill::distill_article
