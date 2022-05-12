@@ -1,23 +1,55 @@
 ---
 title: "Proposal"
 description: |
-  A new article created using the Distill format.
-author:
-  - name: Group 12 
-    url: https://example.com/norajones
-    affiliation: Spacely Sprockets
-    affiliation_url: https://example.com/spacelysprokets
+  A study on the Financial Health of Engagement, Ohio, USA.
+authors:
+  - name: Jeremiah, Rakendu, Shachi
+    url: https://www.linkedin.com/showcase/smumitb/
+    affiliation: Singapore Management University
+    affiliation_url: https://scis.smu.edu.sg/
 date: "`r Sys.Date()`"
 output: distill::distill_article
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE,
+                      eval = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
 ```
 
-Distill is a publication format for scientific and technical writing, native to the web. 
 
-Learn more about using Distill for R Markdown at <https://rstudio.github.io/distill>.
+## Motivation of the Project
+
+
+### The Problems
+
+*Challenge 3*: Economic considers the financial health of the city. Over time, are businesses growing or shrinking? How are people changing jobs? Are standards of living improving or declining over time?
+
+Consider the financial status of Engagement’s businesses and residents, and use visual analytic techniques to address these questions.
+
+Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
+
+How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
+
+Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover? Limit your response to 10 images and 500 words.
+
+### Our Solution 
+
+### The Data
+
+The dataset used is available for download [*here*](https://vast-challenge.github.io/2022/).
+
+## Methodology and Analytical Approach
+
+### a) Exploratory Data Analysis (EDA) via Data Visualisation
+
+
+
+### RShiny Packages
+
+
+
 
 
 
