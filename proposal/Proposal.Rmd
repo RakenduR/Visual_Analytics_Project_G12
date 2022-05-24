@@ -20,33 +20,196 @@ knitr::opts_chunk$set(echo = TRUE,
 
 
 ## Motivation of the Project
+Engagement, Ohio, USA is a small town with huge potential and experiencing sudden growth. We aim to analyse the data and derive insights which will help to plan the budget utilization wisely and to develop the infrastructure of the town to keep up with the growth.
 
+For our Visual Analytics Project we aim to tackle the task 3 of the Vast Challenge.
 
 ### The Problems
 
-*Challenge 3*: Economic considers the financial health of the city. Over time, are businesses growing or shrinking? How are people changing jobs? Are standards of living improving or declining over time?
+**Challenge 3**: 
+
+Economic considers the financial health of the city. Over time, are businesses growing or shrinking? How are people changing jobs? Are standards of living improving or declining over time?
 
 Consider the financial status of Engagement’s businesses and residents, and use visual analytic techniques to address these questions.
 
-Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
+<u>Problem 1: </u>
+* Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
 
-How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
 
-Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover? Limit your response to 10 images and 500 words.
+* How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
+
+
+* Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover? Limit your response to 10 images and 500 words.
+
+### Loading the required packages
+
+```{r}
+packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales')
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+  }
+  library(p, character.only = T)
+}
+
+```
 
 ### Our Solution 
 
-### The Data
-
-The dataset used is available for download [*here*](https://vast-challenge.github.io/2022/).
-
-## Methodology and Analytical Approach
-
-### a) Exploratory Data Analysis (EDA) via Data Visualisation
+<u>Problem 1: (Shachi)</u>
+Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
 
 
 
-### RShiny Packages
+
+
+
+<u>Problem 2: (Rakendu)</u>
+How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
+
+### Dataset
+The Financial Journal of the participants was used to derive insights about the financial health of the residents. Let us take a look at the data :
+
+
+```{r echo=FALSE, eval=FALSE}
+financial_data <- read_csv("data/FinancialJournal.csv")
+participants_data <- read_csv("data/Participants.csv")
+
+financial_data
+```
+![Financial Data](images/FinancialData_image.png)
+
+## Data Wrangling
+
+We use the dplyr package to group by participant id and date from timestamp to find the income and expenditure of the participants. The code can be seen [*here*](https://rakendu-mitb2021.netlify.app/th_ex/th_ex03.html)
+
+
+
+We will read in the wrangled data saved as rds file in order reduce the size
+
+```{r}
+participant_fin <- read_rds("data/rds/participant_fin.rds")
+
+```
+We can use a scatterplot to understand the variations in income vs expenses of participants over time.
+
+
+```{r  fig.width=24, fig.height=8}
+
+
+participant_fin %>%
+  filter(date >= 'Apr 2022') %>%
+  transform(date = as.Date(date, frac = 1)) %>%
+  ggplot(aes(x=income, y = abs(expense), size = savings, color = educationLevel))+
+  geom_point(alpha=0.7) +
+  ggtitle("Income vs Expense by different Education Levels") +
+  ylab("Expense") +
+  xlab("Income")+
+  theme_minimal() +
+  theme(axis.line = element_line(size = 0.5),
+        axis.text = element_text(size = 16),
+        axis.title = element_text(size=16),
+        axis.title.y = element_text(angle = 0),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  labs(title ='Period : {frame_time}')+
+  transition_time(date)+
+  ease_aes('linear')
+
+
+```
+
+From the above plot it can be seen that the the Groups with Low and High School education has lower income as well as lower variation in income (along x axis ) and lower variation in expense (along y axis). The participants with graduate and bachelors education has notably higher variation.
+
+To understand the variations of different groups better, let us first aggregate by the education level.
+
+```{r  fig.width=24, fig.height=8}
+
+
+
+participant_fin %>%
+  filter(date >= 'Apr 2022') %>%
+  transform(date = as.Date(date, frac = 1)) %>%
+  group_by(educationLevel,date) %>%
+  summarise(AvgIncome = mean(income), AvgExpense = mean(expense), AvgSavings = mean(savings)) %>%
+  ggplot(aes(x=AvgIncome, y = abs(AvgExpense), size = AvgSavings, color = educationLevel))+
+  geom_point(alpha=0.7) +
+  ggtitle("Avg Income vs Avg Expense by different Education Levels") +
+  ylab("Expense") +
+  xlab("Income")+
+  theme_minimal() +
+  theme(axis.line = element_line(size = 0.5),
+        axis.text = element_text(size = 16),
+        axis.title = element_text(size=16),
+        axis.title.y = element_text(angle = 0),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  labs(title ='Period : {frame_time}')+
+  transition_time(date)+
+  ease_aes('linear')
+
+
+```
+This indeed shows that the participants with higher education has larger variations in their income and expenses. 
+
+In a similar way, we will also group the participants by age to understand variation in the income and expenses based on age groups.
+
+```{r}
+participant_fin$agegroup <- cut(participant_fin$age, breaks = c(17,30,40,50,60), 
+                             labels = c("18-30","30-40","40-50","50-60"))
+
+participant_fin %>%
+  filter(date >= 'Apr 2022') %>%
+  transform(date = as.Date(date, frac = 1)) %>%
+  group_by(agegroup,date) %>%
+  summarise(AvgIncome = mean(income), AvgExpense = mean(expense), AvgSavings = mean(savings)) %>%
+  ggplot(aes(x=AvgIncome, y = abs(AvgExpense), size = AvgSavings, color = agegroup))+
+  geom_point(alpha=0.7) +
+  ggtitle("Avg Income vs Avg Expense by different Education Levels") +
+  ylab("Expense") +
+  xlab("Income")+
+  theme_minimal() +
+  theme(axis.line = element_line(size = 0.5),
+        axis.text = element_text(size = 16),
+        axis.title = element_text(size=16),
+        axis.title.y = element_text(angle = 0),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  labs(title ='Period : {frame_time}')+
+  transition_time(date)+
+  ease_aes('linear')
+
+```
+
+It is interesting to note that the age grooup 30-40 has the highest mean income as well as  expense and the adjacent age group, 40-50 has the lowest.
+
+The above 3 plots aim to answer the questions related to the financial health of residents of Engagement. 
+
+* The graduate and bachelor educated participants have the largest variation in their income and expenditure.
+
+* From the variation over time, it can be seen that there is a major dip in the earnings as well as expenditure of the participants in 2023. From this we can infer that the financial health of Residents have deteriorated from 2022 to 2023.
+
+
+
+
+
+
+
+
+
+
+<u>Problem 2: (Jeremiah)</u>
+Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover? Limit your response to 10 images and 500 words.
+
+
+
+
+
+
+
 
 
 
