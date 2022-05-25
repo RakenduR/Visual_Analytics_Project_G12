@@ -44,7 +44,7 @@ Consider the financial status of Engagement’s businesses and residents, and us
 ### Loading the required packages
 
 ```{r}
-packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales')
+packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales', 'plotly','treemap')
 for(p in packages){
   if(!require(p, character.only = T)){
     install.packages(p)
@@ -59,10 +59,207 @@ for(p in packages){
 <u>Problem 1: (Shachi)</u>
 Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
 
+### Dataset
+
+Links to the dataset:
+
+[`CheckinJournal.csv`](https://vast-challenge.github.io/2022/)
+[`TravelJournal.csv`](https://vast-challenge.github.io/2022/)
+
+The code chunk below imports *Restaurants.csv* and *TravelJournal.csv* and *Pubs.csv* from the data folder into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) function of **readr** and saves it as Tibble data frame called *travel* and *restaurants* and *pubs*
+
+```{r}
+restaurants <- read_csv("data/Restaurants.csv")
+summary(restaurants)
+```
+```{r}
+pubs <- read_csv("data/Pubs.csv")
+summary(pubs)
+```
+```{r eval=FALSE}
+travel <- read_csv("data/TravelJournal.csv")
+summary(restaurants)
+```
+
+## Data Wrangling 
+
+The Travel Journal contains financial transactions by a participant towards Work/Home Commute, Eating, Coming Back From Restaurant,Recreation (Social Gathering), Going Back to Home. 
+*We filter out the records related to Eating and Recreation (Social Gathering)*.
+
+```{r eval=FALSE}
+travel_filt <- travel[travel$purpose %in% c("Eating","Recreation (Social Gathering)"),]
+```
+
+### Calculating Amount Spent
+
+Calculating *the total amount spent at the location as a difference of the starting balance and ending balance* in the travel journal
+
+```{r eval=FALSE}
+travel_filt$amountSpent <- travel_filt$startingBalance -travel_filt$endingBalance
+```
+
+```{r eval=FALSE}
+saveRDS(travel_filt, 'data/travel_filt.rds')
+```
+
+```{r}
+travel_filt <- readRDS('data/rds/travel_filt.rds')
+head(travel_filt)
+```
+
+## Data Visualization
 
 
+Grouping the data by the travelEndLocationId which is equal to the restaurant ID or the pub ID.
 
+```{r}
+travel_group = travel_filt %>%group_by(travelEndLocationId) %>%
+  summarise(amountSpent = sum(amountSpent), 
+            .groups = 'drop')%>%
+  arrange(desc(amountSpent))
 
+``` 
+
+```{r}
+
+library(dplyr)
+data_merge <-merge(x=travel_group, y=restaurants, by.x = 'travelEndLocationId', by.y =  'restaurantId')
+data_merge$travelEndLocationId <- as.character(data_merge$travelEndLocationId)
+data_merge$amountSpent <- data_merge$amountSpent/1000
+```
+
+### Revenue for Restaurants
+
+The restaurants highlighted in red are among those which had a revenue less than 50 thousand dollars over the period of time
+
+```{r}
+library(plotly)
+
+color = c('rgba(222,45,38,0.8)','rgba(204,204,204,1)','rgba(204,204,204,1)', 'rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)', 'rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(222,45,38,0.8)','rgba(222,45,38,0.8)','rgba(222,45,38,0.8)',
+          'rgba(222,45,38,0.8)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)')
+
+fig<- plot_ly(data_merge, x = ~reorder(`travelEndLocationId`, -amountSpent), y = ~amountSpent, type = 'bar', marker = list(color = color))
+
+fig <- fig %>% layout(title = "Revenue for Restraunts",
+         xaxis = list(title = "Retaurant ID"),
+         yaxis = list(title = "Revenue (in thousands $)"))
+
+fig
+
+```
+### Revenue for Pubs
+
+The restaurants highlighted in red are among those which had a revenue less than 300 thousand dollars over the period of time
+
+```{r}
+data_pub <-merge(x=travel_group, y=pubs, by.x = "travelEndLocationId", by.y = "pubId")
+data_pub$travelEndLocationId <- as.character(data_pub$travelEndLocationId)
+data_pub$amountSpent <- data_pub$amountSpent/1000
+
+```
+
+```{r}
+library(plotly)
+color = c('rgba(222,45,38,0.8)','rgba(222,45,38,0.8)','rgba(222,45,38,0.8)', 'rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)','rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(204,204,204,1)')
+fig<- plot_ly(data_pub, x = ~reorder(`travelEndLocationId`, -amountSpent), y = ~amountSpent, type = 'bar', marker = list(color = color))
+
+fig <- fig %>% layout(title = "Revenue for Pubs",
+         xaxis = list(title = "Pub ID"),
+         yaxis = list(title = "Revenue (in thousands $)"))
+
+fig
+```
+
+### Treemap for Retaurants based on amount spent
+
+```{r}
+treemap(data_merge,
+        index=c("travelEndLocationId"), 
+        vSize="amountSpent",
+        vColor="amountSpent",
+        title="Amount Spent in thousands of Dollars - Restaurants",
+        title.legend = "Amount Spent in thousands of Dollars - Restaurants"
+        )
+```
+
+### Revenue generated in 2022 over the months - Pubs
+
+```{r}
+data_travel= travel_filt %>%
+  mutate(weekday = weekdays(checkInTime),
+         day = day(checkInTime),
+         month=as.character(checkInTime,"%b %y"),
+         year = year(checkInTime),
+         monthYear = floor_date(checkInTime, "month"),
+         travelEndLocationId=as.character(travelEndLocationId),
+         timeSpent = checkOutTime - checkInTime,
+         participantId=as.character(participantId),
+         purpose=as.character(purpose))
+data_travel$timeSpent <- as.numeric(as.character(data_travel$timeSpent))
+```
+
+```{r}
+data_travel <- data_travel[,c("participantId","travelStartLocationId", "travelEndLocationId", "purpose",  "amountSpent","timeSpent","weekday","day","month","year","monthYear")]
+
+group_pub <-merge(x=data_travel, y=pubs, by.x = "travelEndLocationId", by.y = "pubId")
+group_restaurant<-merge(x=data_travel, y=restaurants, by.x = 'travelEndLocationId', by.y =  'restaurantId')
+
+```
+
+```{r}
+group_pub = group_pub %>% 
+  filter(year == 2022) %>%
+  group_by(month, travelEndLocationId) %>%
+  summarise(amountSpent = (sum(amountSpent)/1000))
+group_restaurant = group_restaurant %>% 
+  filter(year == 2022) %>%
+  group_by(month, travelEndLocationId) %>%
+  summarise(amountSpent = (sum(amountSpent)/1000))
+```
+```{r}
+p<- ggplot(group_pub, aes(x=month, y=amountSpent, group=travelEndLocationId)) +
+  geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
+  labs(
+    y= 'Revenue (Thousands$)',
+    x= 'months -2022',
+    title = "Revenue Pubs - 2022",
+    caption = "Ohio USA"
+  ) +
+  theme_minimal()+
+  theme(axis.ticks.x= element_blank(),
+        panel.background= element_blank(), 
+        legend.background = element_blank(),
+        plot.title = element_text(size=12, face="bold",hjust = 0.5),
+        plot.subtitle = element_text(hjust = 1),
+        plot.caption = element_text(hjust = 0),
+        axis.title.y= element_text(angle=0))
+
+ggplotly(p)
+```
+
+### Revenue generated in 2022 over the months - Restaurants
+
+```{r}
+p<- ggplot(group_restaurant, aes(x=month, y=amountSpent, group=travelEndLocationId)) +
+  geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
+  labs(
+    y= 'Revenue (Thousands$)',
+    x= 'months -2022',
+    title = "Revenue Restaurants- 2022",
+    caption = "Ohio USA"
+  ) +
+  theme_minimal()+
+  theme(axis.ticks.x= element_blank(),
+        panel.background= element_blank(), 
+        legend.background = element_blank(),
+        plot.title = element_text(size=12, face="bold",hjust = 0.5),
+        plot.subtitle = element_text(hjust = 1),
+        plot.caption = element_text(hjust = 0),
+        axis.title.y= element_text(angle=0))
+
+ggplotly(p)
+```
+`
 
 <u>Problem 2: (Rakendu)</u>
 How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
