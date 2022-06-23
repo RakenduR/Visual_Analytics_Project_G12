@@ -5,3 +5,8 @@
 .Rdata
 .httr-oauth
 .DS_Store
+*.csv
+th_ex/data
+_site/th_ex/data
+_site/practice/data
+practice/data
