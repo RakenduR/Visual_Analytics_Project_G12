@@ -1,6 +1,6 @@
-packages <- c('shiny', 'shinydashboard', 'shinythemes', 
-              'plotly', 'tidyverse', 'ggstatsplot', 
-              'tools')
+packages <- c('shiny', 'shinydashboard', 'shinythemes','tsibble','tseries',
+              'plotly', 'tidyverse', 'ggstatsplot','zoo','forecast',
+              'tools','shinyWidgets','readxl','bslib','dplyr','lubridate')
 
 for (p in packages){
   library(p, character.only=T)
@@ -11,20 +11,21 @@ travel <- read_csv("data/rds/travel_filt.rds")
 
 
 
-ui <- navbarPage(
-  title = "VAST Challenge 3 - Economic",
+ui <- fluidPage(
+  theme = bs_theme(bootswatch = "minty"),
+  navbarPage(
+  title = "VAST Challenge 3 - €conomic",
   fluid = TRUE,
   collapsible = TRUE,
-  windowTitle = "VAST Challenge 3 - Economic",
   theme=shinytheme("united"),
   id = "navbarID",
-  tabPanel(title = "Introduction",
+  tabPanel(title = "Overview",icon = icon("globe"),
            mainPanel(
              img(src='Image/img.jpg', align = "right"),
              ### the rest of your code
            )),
-  navbarMenu("Univariate"),
-  navbarMenu("Bivariate",
+  navbarMenu("Exploratory", icon =icon("list-alt")),
+  navbarMenu("Analysis",icon =icon("cog", lib = "glyphicon"),
              tabPanel("Between group"),
              tabPanel("Within group"),
              tabPanel("ANOVA",
@@ -105,11 +106,12 @@ ui <- navbarPage(
                         )
                       ))
   ),
-  navbarMenu("Multivariate",
+  navbarMenu("Predictive",icon = icon("bar-chart-o"),
              tabPanel("Principal Component Analysis"),
              tabPanel("Hierarchical Custering"),
              tabPanel("kmeans Clustering"),
              tabPanel("Multiple Linear Regression"))
+)
 )
 
 #========================#
