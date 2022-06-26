@@ -8,15 +8,15 @@ for (p in packages){
 participant_fin <- read_rds("data/rds/participant_fin.rds")
 
 
-
-ui <- fluidPage(
-  title = "Introduction",
-  sidebarPanel(width =3,
-               selectInput("partgroup",
+selectInput("partgroup",
                          "Select Grouping",
                          c("Education Level" = "educationLevel","Age Group" = "agegroup")
                          ),
                textOutput("selectedGroup1")
+ui <- fluidPage(
+  title = "Introduction",
+  sidebarPanel(width =3,
+               
                ),
   mainPanel(width = 9,
             plotOutput("areaplot1",
