@@ -63,7 +63,7 @@ server <- function(input, output){
             legend.text = element_text(size = 16),
             plot.title = element_text(size =20,hjust = 0.5))+
       ggtitle(paste("Average Income by", input$partgroup))+
-      scale_fill_brewer(palette = "viridis", direction = -1)+
+      scale_fill_viridis_d(direction = -1)+
       scale_y_continuous(breaks = seq(0,30000,5000))
     
     
