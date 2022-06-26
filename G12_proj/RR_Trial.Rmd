@@ -1,0 +1,137 @@
+---
+title: "RR_Trial"
+author: "Rakendu"
+date: '2022-06-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      eval = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+
+
+```{r}
+packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales')
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+  }
+  library(p, character.only = T)
+}
+
+```
+
+```{r}
+financial_data <- read_csv("data/FinancialJournal.csv")
+participants_data <- read_csv("data/Participants.csv")
+```
+
+```{r}
+level_order <- c('Graduate','Bachelors','HighSchoolOrCollege','Low')
+
+  participant_fin <- financial_data %>%
+  mutate(date = as.yearmon(timestamp)) %>%
+  group_by(participantId, date) %>%
+  summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
+  mutate(savings = round(income + expense,digits = 0)) %>%
+  inner_join(participants_data, by =c('participantId'))%>%
+  mutate(educationLevel = factor(educationLevel, levels = level_order))
+  
+  participant_fin$agegroup <- cut(participant_fin$age, breaks = c(17,30,40,50,60), 
+                             labels = c("18-30","30-40","40-50","50-60"))
+
+
+```
+
+
+```{r}
+
+write_rds(participant_fin,"data/rds/participant_fin.rds")
+```
+
+```{r}
+
+participant_fin <- read_rds("data/rds/participant_fin.rds")
+
+```
+
+
+```{r}
+
+Education_fin <- participant_fin %>%
+  group_by(educationLevel,date) %>%
+  summarise(income = mean(income), expense= mean(expense))
+  
+```
+
+
+```{r  fig.width=16, fig.height=8}
+
+Education_fin %>%
+  ggplot(aes(x=date, y = income,fill =educationLevel))+
+  geom_area(size = 0.75)+
+  ylab("Income")+
+  xlab("Month, Year")+
+  theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  ggtitle("Average Income by Education Level")+
+    #scale_fill_manual(values = c("#ff6666","#FFCC33","#66cc33","#33ccff"))
+  scale_fill_brewer(palette = "Set2")+
+  scale_y_continuous(breaks = seq(0,30000,5000))
+
+```
+
+
+
+```{r}
+
+age_fin <- participant_fin %>%
+  group_by(educationLevel,date) %>%
+  summarise(income = mean(income), expense= mean(expense))
+  
+```
+
+
+```{r  fig.width=16, fig.height=8}
+
+age_fin %>%
+  ggplot(aes(x=date, y = income,fill =educationLevel))+
+  geom_area(size = 0.75)+
+  ylab("Income")+
+  xlab("Month, Year")+
+  theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  ggtitle("Average Income by Age Group")+
+    #scale_fill_manual(values = c("#ff6666","#FFCC33","#66cc33","#33ccff"))
+  scale_fill_brewer(palette = "Set2")+
+  scale_y_continuous(breaks = seq(0,30000,5000))
+
+```

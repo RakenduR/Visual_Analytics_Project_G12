@@ -1,6 +1,7 @@
 packages <- c('shiny', 'shinydashboard', 'shinythemes', 
               'plotly', 'tidyverse', 'ggstatsplot', 
-              'tools','gganimate','ggiraph','zoo')
+              'tools','gganimate','ggiraph','zoo','ggdist',
+              'gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','lubridate','scales')
 
 for (p in packages){
   library(p, character.only=T)
@@ -24,14 +25,20 @@ ui <- navbarPage(
            ),
   navbarMenu("Exploratory",
              tabPanel("Graph 1",
-                      sidebarPanel("Sidebar",
-                                   width = 3),
+                      sidebarPanel(
+                                   width = 3,
+                                   selectInput(
+                                     "partgroup",
+                                     "Select Grouping",
+                                    c("Education Level" = "educationLevel","Age Group" = "agegroup")
+                                   ),
+                                   textOutput("selectedGroup")),
                       mainPanel(
                                 width = 9,
                                 fluidRow(
                                   column(width = 9,
                                          wellPanel("Test Graph",
-                                           plotOutput("lineplot",
+                                           plotOutput("areaplot",
                                                       height = "500px")
                                          )
                                   )
@@ -77,6 +84,55 @@ ui <- navbarPage(
 #========================#
 
 server <- function(input, output){
+  
+  output$areaplot <- renderPlot({
+    
+    
+    grouped_fin <- participant_fin %>%
+      group_by(c(input$partgroup,"date")) %>%
+      summarise(income = mean(income), expense= mean(expense))
+    
+    
+    
+    area <- grouped_fin %>%
+      ggplot(aes(x=date, y = income,fill =c(input$partgroup)))+
+      geom_area(size = 0.75)+
+      ylab("Income")+
+      xlab("Month, Year")+
+      theme(axis.title.y=element_text(angle =0),
+            axis.title.x=element_text(margin = margin(t=-10)),
+            panel.grid.minor.y = element_blank(),
+            panel.grid.minor.x = element_line(colour = "grey90"),
+            panel.grid.major.x = element_line(colour = "grey90"),
+            panel.grid.major.y = element_line(colour = "grey90"),
+            panel.background = element_rect(fill = "white"),
+            axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+            axis.text.y = element_text(size =16),
+            axis.line = element_line(color="grey25", size = 0.02),
+            axis.title = element_text(size=16),
+            legend.title = element_text(size =16),
+            legend.text = element_text(size = 16),
+            plot.title = element_text(size =20,hjust = 0.5))+
+      ggtitle(input$partgroup)+
+      #scale_fill_manual(values = c("#ff6666","#FFCC33","#66cc33","#33ccff"))
+      scale_fill_brewer(palette = "Set2")+
+      scale_y_continuous(breaks = seq(0,30000,5000))
+    
+    return(area)
+    
+  })
+  
+  output$selectedGroup <- renderText({
+    paste("You chose",input$partgroup)
+  })
+  
+  
+  output$selectedGroup <- renderPrint({
+    
+    return(!!input$partgroup)
+  })
+  
+  
   
   output$lineplot <- renderPlot({
     
