@@ -403,7 +403,160 @@ Describe the health of the various employers within the city limits. What employ
 
 
 
+# Health of various employers in the city
 
+The below code chunk shows the spread of hourly rate wages.User can select educationRequirement and no. of bins. Default view as below.
+
+```{r}
+jobs <- read_rds("data/jobs.rds")
+jobs2 <- jobs[,-7]
+jobs3<- jobs %>%
+  filter(educationRequirement == "Low")
+jobs4 <- jobs %>%
+  filter(educationRequirement == "HighSchoolOrCollege")
+jobs5 <- jobs %>%
+  filter(educationRequirement == "Bachelors")
+jobs6 <- jobs %>%
+  filter(educationRequirement == "Graduate")
+Bins <- 6
+
+ggplot(jobs, aes(x = hourlyRate,
+                 fill = educationRequirement)) +
+  geom_histogram(data = jobs2,
+                 fill = "dark grey",
+                 alpha = .5,
+                 bins = Bins) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  facet_wrap(~ educationRequirement) + 
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages by Education Level vs. Overall Job Market") +
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+```
+
+
+View for selecting Low only
+
+```{r}
+p <- ggplot(jobs3, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(data = jobs2,
+                 fill = "dark grey",
+                 alpha = .5,
+                 bins = Bins) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Low education vs. Overall Job Market")+
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p2 <- ggplot(jobs3, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Low Education") +
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p/p2
+```
+
+
+View for selecting HighSchoolOrCollege only
+
+```{r}
+p3 <- ggplot(jobs4, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(data = jobs2,
+                 fill = "dark grey",
+                 alpha = .5,
+                 bins = Bins) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for High School or\n College education vs. Overall Job Market")+
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p4 <- ggplot(jobs4, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for High School or College education") +
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p3/p4
+```
+
+View for selecting Bachelors only
+
+```{r}
+p5 <- ggplot(jobs5, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(data = jobs2,
+                 fill = "dark grey",
+                 alpha = .5,
+                 bins = Bins) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Bachelors education vs. Overall Job Market")+
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p6 <- ggplot(jobs5, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Bachelors education") +
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p5/p6
+```
+
+View for selecting Graduate only
+
+```{r}
+p7 <- ggplot(jobs6, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(data = jobs2,
+                 fill = "dark grey",
+                 alpha = .5,
+                 bins = Bins) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Graduate education vs. Overall Job Market")+
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p8 <- ggplot(jobs6, aes(x = hourlyRate,
+                 fill = "Salmon")) +
+  geom_histogram(colour = "black", 
+                 bins = Bins) +
+  xlab("Hourly Rate") +
+  ylab("No. of Job Openings") +
+  labs(title = "Spread of Hourly Wages for Graduate education") +
+  guides(fill = FALSE, scale = "none") +
+  theme_bw()
+
+p7/p8
+```
 
 
 
