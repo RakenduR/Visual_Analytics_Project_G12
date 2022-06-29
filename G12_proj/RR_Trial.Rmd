@@ -30,7 +30,11 @@ financial_data <- read_csv("data/FinancialJournal.csv")
 participants_data <- read_csv("data/Participants.csv")
 ```
 
+## Income grouped by education level
+
+  
 ```{r}
+
 level_order <- c('Graduate','Bachelors','HighSchoolOrCollege','Low')
 
   participant_fin <- financial_data %>%
@@ -97,6 +101,7 @@ Education_fin %>%
 
 ```
 
+## Income grouped by Age Group
 
 
 ```{r}
@@ -130,8 +135,247 @@ age_fin %>%
         legend.text = element_text(size = 16),
         plot.title = element_text(size =20,hjust = 0.5))+
   ggtitle("Average Income by Age Group")+
-    #scale_fill_manual(values = c("#ff6666","#FFCC33","#66cc33","#33ccff"))
   scale_fill_brewer(palette = "Set2")+
   scale_y_continuous(breaks = seq(0,30000,5000))
 
+```
+
+### Graph 2 - Income and expense of different Education Groups/Age Groups
+# Add Legend separately?
+
+```{r  fig.width=16, fig.height=8}
+
+Education_fin %>%
+  filter(educationLevel == "Graduate") %>%
+  ggplot(aes(x=date))+
+  geom_line(aes(y=income),color ="steelblue")+
+  geom_line(aes(y=-expense), color = "darkred")+
+  ylab("Income")+
+  xlab("Month, Year")+
+  theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5))+
+  ggtitle("Average Income by Education Level")+
+  scale_y_continuous(breaks = seq(0,100,10))
+
+```
+### Average income and expense grouped by different periods 
+
+
+```{r}
+
+
+  participant_period_fin <- financial_data %>%
+      group_by(participantId,timestamp) %>%
+    summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0)))%>%
+  mutate(MonthYear = as.yearmon(timestamp)) %>%
+    mutate(week_day = weekdays(timestamp)) %>%
+    mutate(day_of_month = day(timestamp)) %>%
+    mutate(hour_of_day = hour(timestamp))
+  
+```
+
+
+
+```{r}
+level_order <- c('Graduate','Bachelors','HighSchoolOrCollege','Low')
+
+Fin_data_for_plot <- participant_period_fin%>%
+    inner_join(participants_data[,c("participantId","educationLevel","age")], by =c('participantId'))%>%
+  mutate(educationLevel = factor(educationLevel, levels = level_order)) %>%
+  mutate(agegroup =  cut(age, breaks = c(17,30,40,50,60), 
+                             labels = c("18-30","30-40","40-50","50-60")))
+
+
+```
+
+
+```{r}
+
+write_rds(Fin_data_for_plot,"data/rds/Fin_data_for_plot.rds")
+```
+```{r}
+
+Fin_data_for_plot <- read_rds("data/rds/Fin_data_for_plot.rds")
+```
+
+```{r}
+
+
+Fin_data_for_plot%>%
+  group_by(educationLevel, week_day)%>%
+  summarise(avgincome = mean(income), avgexpense= mean(expense))  %>%
+  ggplot(aes(x=week_day, y = avgincome, group = educationLevel))+
+  geom_line(aes(color = educationLevel))+
+  geom_point()
+
+```
+
+
+```{r}
+
+
+Fin_data_for_plot%>%
+  group_by(week_day, educationLevel)%>%
+  summarise(avgincome = mean(income), avgexpense= mean(expense))  %>%
+  ggplot(aes(x=week_day, y = -avgexpense, group = educationLevel))+
+  geom_line(aes(color = educationLevel))+
+  geom_point()
+
+```
+## Filter above plot for each education level - Not working
+
+```{r}
+
+
+Fin_data_for_plot%>%
+  filter(educationLevel== "Graduate") %>%
+  group_by(week_day)%>%
+  summarise(avgincome = mean(income), avgexpense= mean(expense))%>%
+  ggplot(aes(x=week_day, y = avgincome))+
+  geom_point()+
+  geom_line(color = "steelblue")
+```
+
+
+```{r}
+
+
+Fin_data_for_plot%>%
+  filter(educationLevel== "Graduate") %>%
+    group_by(week_day)%>%
+  summarise(avgincome = mean(income), avgexpense= mean(expense)) %>%
+  ggplot(aes(x=week_day, y = avgincome))+
+  geom_line(color= "red")
+  geom_point()
+
+```
+
+###Heatmap - expenses of participants dynamically group by period
+
+```{r fig.width=16, fig.height=8}
+wkday_levels <- c('Saturday', 'Friday', 
+                  'Thursday', 'Wednesday', 
+                  'Tuesday', 'Monday', 
+                  'Sunday')
+
+expense_data <- financial_data %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+  mutate(expense = round(abs(ifelse(amount<=0,amount,0)))) %>%
+  filter(expense>0) %>%
+  group_by(date)%>%
+  summarise(AvgExpense = mean(expense))%>%
+  mutate(wkday = factor(weekdays(date),levels = wkday_levels)) %>%
+  mutate(wknumber = week(date))
+
+expense_data%>%
+  ggplot(aes(wknumber,wkday,fill=AvgExpense))+
+  geom_tile(color = "white", size = 0.1)+
+  theme_tufte(base_family = "Helvetica")+
+  coord_equal() +
+  scale_fill_gradient(name = "Expense",
+                    low = "sky blue", 
+                    high = "dark blue",
+                    labels = comma)+
+  labs(x = "Weeks of the Year",
+       y = NULL,
+       title = "Average Weekly Expense of Residents") +
+  theme(axis.text = element_text(size = 16,margin = margin(r = -60)),
+        axis.ticks.y= element_blank(),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        axis.title.x = element_text(size=14))
+
+```
+
+```{r}
+
+expense_month_data <- financial_data %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+  mutate(expense = round(abs(ifelse(amount<=0,amount,0)))) %>%
+  filter(expense>0) %>%
+  group_by(date)%>%
+  summarise(AvgExpense = mean(expense))%>%
+  mutate(month = factor(as.yearmon(date))) %>%
+  mutate(day = day(date))
+
+expense_month_data%>%
+  ggplot(aes(day,month,fill=AvgExpense))+
+  geom_tile(color = "white", size = 0.1)+
+  theme_tufte(base_family = "Helvetica")+
+  coord_equal() +
+  scale_fill_gradient(name = "Expense",
+                    low = "sky blue", 
+                    high = "dark blue",
+                    labels = comma)+
+  labs(x = "Days of the Month", 
+     y = NULL, 
+     title = "Average Daily Expense of Residents") +
+  theme(axis.text = element_text(size = 9,margin = margin(r = -60)),
+        axis.ticks.y= element_blank(),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16))
+```
+```{r}
+
+expense_part_month_data <- financial_data %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+  mutate(expense = round(abs(ifelse(amount<=0,amount,0)))) %>%
+  filter(expense>0) %>%
+  group_by(date)%>%
+  summarise(AvgExpense = mean(expense))%>%
+  mutate(month = factor(as.yearmon(date))) %>%
+  mutate(day = day(date))%>%
+  filter(day > 1)
+
+expense_part_month_data$tooltip <- weekdays(expense_part_month_data$date)
+
+p3 <- expense_part_month_data%>%
+  ggplot(aes(day,month,fill=AvgExpense))+
+  geom_tile_interactive(aes(tooltip = tooltip),color = "white", size = 0.1)+
+  theme_tufte(base_family = "Helvetica")+
+  coord_equal() +
+  scale_fill_gradient(name = "Expense",
+                    low = "sky blue", 
+                    high = "dark blue",
+                    labels = comma)+
+  labs(x = "Day of the month", 
+     y = NULL, 
+     title = "Average Daily Expense of Residents") +
+  theme(axis.text = element_text(size = 12,margin = margin(r = -60)),
+        axis.ticks.y= element_blank(),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =18),
+        axis.title.x = element_text(size = 14))
+
+girafe(
+  ggobj = p3,
+  width_svg = 12,
+  height_svg = 12*0.618
+)
+
+```
+
+
+## Income distribution by educationLevel grouped by different periods
+```{r}
+
+
+Fin_data_for_plot%>%
+  filter(educationLevel== "Graduate") %>%
+  ggplot(aes(x=week_day, y = income))+
+  geom_violin()+
+   scale_y_continuous(breaks = seq(0, 10,1), limits = c(0,15))
 ```
