@@ -1,12 +1,21 @@
 packages <- c('shiny', 'shinydashboard', 'shinythemes','tsibble','tseries',
               'plotly', 'tidyverse', 'ggstatsplot','zoo','forecast',
-              'tools','shinyWidgets','readxl','bslib','dplyr','lubridate','patchwork')
+              'tools','shinyWidgets','readxl','bslib','dplyr','lubridate','patchwork','tmap', 'sf', 'leaflet')
 
 for (p in packages){
   library(p, character.only=T)
 }
 
+###Jeremiah's Data###
 jobs <- read_rds("data/rds/jobs.rds")
+jbuildings <- read_sf("data/jBuildings.csv",
+                     options = "GEOM_POSSIBLE_NAMES=location")
+
+jjobs <- read_sf("data/jjobs.csv",
+                 options = "GEOM_POSSIBLE_NAMES=location")
+
+###End###
+
 exam <- read_csv("data/Exam_data.csv")
 travel_filt <- readRDS('data/rds/travel_filt.rds')
 restaurants <- read_csv("data/Restaurants.csv")
@@ -188,9 +197,14 @@ ui <- fluidPage(
                                                label = "Number of Bins",
                                                min = 4,
                                                max = 12,
-                                               value = 6)
+                                               value = 6),
+                                   sliderInput(inputId = "jobshourlyrate",
+                                               label = "Select Hourly Rate for map plot",
+                                               value = c(0,100),
+                                               min = 0,
+                                               max = 100)
                                    ),
-                      mainPanel(width = 10, plotOutput("Wagespread"))),
+                      mainPanel(width = 10, plotOutput("Wagespread"),tmapOutput("jmap"))),
              tabPanel("Employment Patterns"),
              tabPanel("Turnover"))
   )
@@ -260,6 +274,7 @@ server <- function(input, output){
 
   ##### Shiny Server: Employer: Employer Health ##### 
   
+  
   ##### Education Filter#####
   jobs2 <- reactive({
     if(input$educationrequired == "All") {
@@ -279,6 +294,35 @@ server <- function(input, output){
     }
   })
   jobs3 <- jobs[,-7]
+  
+  jjobs1 <- jjobs%>%
+    mutate(hourlyRate = as.numeric(hourlyRate)) %>%
+    mutate(Turnover = as.numeric(Turnover)) %>%
+    rename('AverageAgeHired'='mean.age.') %>%
+    mutate(AverageAgeHired = as.numeric(AverageAgeHired))
+  
+  jjobs2 <- reactive({
+    if(input$educationrequired == "All") {
+      jjobs2 <- jjobs1 %>%
+        filter(hourlyRate >= min(input$jobshourlyrate) & hourlyRate <= max(input$jobshourlyrate))
+    } else if(input$educationrequired == "Low") {
+      jjobs2 <- jjobs1 %>%
+        filter(educationRequirement == "Low") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate) & hourlyRate <= max(input$jobshourlyrate))
+    } else if (input$educationrequired == "HighSchoolOrCollege") {
+      jjobs2 <- jjobs1 %>%
+        filter(educationRequirement == "HighSchoolOrCollege") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate) & hourlyRate <= max(input$jobshourlyrate))
+    } else if (input$educationrequired == "Bachelors") {
+      jjobs2 <- jjobs1 %>%
+        filter(educationRequirement == "Bachelors") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate) & hourlyRate <= max(input$jobshourlyrate))
+    } else {
+      jjobs2 <- jjobs1 %>%
+        filter(educationRequirement == "Graduate") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate) & hourlyRate <= max(input$jobshourlyrate))
+    }
+  })
   
   output$Wagespread <- renderPlot({
     j <- ggplot(jobs, aes(x = hourlyRate,
@@ -308,6 +352,27 @@ server <- function(input, output){
     
     j+j2
   })
+  
+  output$jmap <- renderTmap({
+    tmap_mode("plot")
+    j3 <- tm_shape(jbuildings)+
+      tm_polygons(col = "lightgrey",
+                  size = 1,
+                  border.col = "black",
+                  border.lwd = 1)+
+      tm_shape(jjobs2()) +
+      tm_bubbles(col = "educationRequirement",
+                 alpha = 0.5,
+                 style = "jenks",
+                 palette="RdYlBu",
+                 size = "hourlyRate",
+                 scale = 1,
+                 border.col = "black",
+                 border.lwd = 0.5
+      ) + 
+      tm_layout(main.title = "Map for jobs and their hourly rate", title.position = c('right', 'top'), legend.show =TRUE, legend.position =  "right") +
+      tm_compass()
+    })
   
   
 }
