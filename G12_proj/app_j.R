@@ -204,8 +204,45 @@ ui <- fluidPage(
                                                min = 0,
                                                max = 100)
                                    ),
-                      mainPanel(width = 10, plotOutput("Wagespread"),tmapOutput("jmap"))),
-             tabPanel("Employment Patterns"),
+                      mainPanel(width = 9, plotOutput("Wagespread"),tmapOutput("jmap"))),
+             tabPanel("Employment Patterns",
+                      sidebarPanel(width = 3,
+                                   selectInput(inputId = "categoryj",
+                                               label = "Select Categorical X-Variable for Comparison against Hourly Wage Rate",
+                                               choices = c("Age group for average age hired" = "agegroupj",
+                                                           "Education Required" = "educationRequirement"),
+                                               selected = "educationRequirement"),
+                                   selectInput(inputId = "testj",
+                                              label = "Type of statistical test:",
+                                              choices = c("parametric" = "p",
+                                                          "nonparametric" = "np",
+                                                          "robust" = "r",
+                                                          "Bayes Factor" = "bf"),
+                                              selected = "p"),
+                                   selectInput(inputId = "plotTypej",
+                                               label = "Type of plot:",
+                                               choices = c("boxviolin" = "boxviolin",
+                                                           "box" = "box",
+                                                           "violin" = "violin"),
+                                               selected = "boxviolin"),
+                                   selectInput(inputId = "yvariablej",
+                                               label = "Select y-variable for correlation plot against average age hired:",
+                                               choices = c("Hourly Wage Rate" = "hourlyRate",
+                                                           "No. of jobs hired for" = "jobshired"),
+                                               selected = "hourlyRate"),
+                                   selectInput(inputId = "testj2",
+                                               label = "Type of statistical test:",
+                                               choices = c("parametric" = "p",
+                                                           "nonparametric" = "np",
+                                                           "robust" = "r",
+                                                           "Bayes Factor" = "bf"),
+                                               selected = "p"),
+                                   checkboxInput(inputId = "marginalj", 
+                                                 label = "Display marginal graphs", 
+                                                 value = TRUE)
+                                   ),
+                      mainPanel(width = 9, height = 20, plotOutput("employmentpattern"))
+                      ),
              tabPanel("Turnover"))
   )
 )
@@ -373,8 +410,70 @@ server <- function(input, output){
       tm_layout(main.title = "Map for jobs and their hourly rate", title.position = c('right', 'top'), legend.show =TRUE, legend.position =  "right") +
       tm_compass()
     })
+  ##### Shiny Server: Employer : Employment Patterns ##### 
+  jobs$`mean(age)`[is.na(jobs$`mean(age)`)] <- 0
+  jobs5 <- jobs %>%
+    rename(averageage=`mean(age)`) %>%
+    filter(averageage > 0 )
   
+  jobs4 <- reactive({
+    if(input$categoryj == "agegroupj") {
+      jobs4 <- jobs5 %>%
+        mutate(agegroupj = cut(jobs5$averageage, breaks = 4, labels = c("18-28.5","29-39", "40-49.5", "50-60" )))
+    } else {
+      jobs4 <- jobs 
+    }
+  })
   
+  jobs6 <- reactive({
+    if(input$yvariablej == "jobshired") {
+      jobs6 <- jobs5 %>%
+        group_by(averageage) %>%
+        summarise(jobshired = n())
+    } else {
+      jobs6 <- jobs5
+    }
+  })
+  
+  output$employmentpattern <- renderPlot({
+    
+   j5<-ggbetweenstats(
+      data = jobs4(),
+      x = !!input$categoryj, 
+      y = hourlyRate,
+      type = input$testj,
+      plot.type = input$plotTypej,
+      mean.ci = TRUE, 
+      pairwise.comparisons = TRUE, 
+      pairwise.display = "s",
+      p.adjust.method = "fdr",
+      xlab = ifelse(input$categoryj == "agegroupj", "Age Group for Average Age hired ",
+                    "Education Required"),
+      ylab = "Hourly Rate",
+      title = ifelse(input$categoryj == "agegroupj", "Are there any patterns between hourly rate and average age hired?",
+                     "Are there any patterns between hourly rate and education required?"),
+      messages = FALSE)
+   
+   j6<- ggscatterstats(
+     data = jobs6(),
+     x = averageage, 
+     y = !!input$yvariablej,
+     marginal = input$marginalj,
+     xlab = "Average Age Hired",
+     ylab = ifelse(input$yvariablej == "hourlyRate", "Hourly Rate", "No. of Jobs Hired for"),
+     title = ifelse(input$yvariablej == "hourlyRate", "Is there a correlation between hourly rate and average age hired?",
+                    "Is there a correlation between jobs hired for and age?"),
+     type = input$testj2,
+     conf.level = 0.95,
+     bf.prior = 0.707)
+   
+   j5+j6 + plot_annotation(
+     title = ifelse(input$categoryj =="agegroupj", "Investigating if there are any employment patterns when it comes to age",
+                    "Investigating if there any employment patterns when it comes to age and education level"),
+     theme = theme(plot.title = element_text(size = 14, face = "bold"))
+   )
+  }) 
+ 
 }
 
 shinyApp(ui = ui, server = server)
