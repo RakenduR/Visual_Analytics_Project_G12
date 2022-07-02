@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 
 ```{r}
-packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales','viridis')
+packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales','viridis','tsibble','forecast','fpp3','tseries')
 for(p in packages){
   if(!require(p, character.only = T)){
     install.packages(p)
@@ -29,6 +29,32 @@ for(p in packages){
 financial_data <- read_csv("data/FinancialJournal.csv")
 participants_data <- read_csv("data/Participants.csv")
 ```
+
+
+```{r}
+
+forecast_data <- dataset_1 %>%
+  filter(educationLevel == "Low") %>%
+  filter(agegroup == "50-60") %>%
+  mutate(Time = yearmonth(timestamp))%>%
+  group_by(Time,participantId) %>%
+  summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
+  ungroup() %>%
+  group_by(Time) %>%
+  summarise(income = mean(income),expense = mean(expense))
+
+forecast_data <- as_tsibble(forecast_data, index = Time)
+
+```
+```{r}
+
+        forecast_data %>%
+          model(ARIMA(income,order=c(1,0,0))) %>%
+          forecast(h = "12 months") %>%
+          autoplot(forecast_data) +
+  theme_light()
+```
+
 
 
 ```{r}

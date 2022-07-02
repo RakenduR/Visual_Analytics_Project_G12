@@ -7,19 +7,17 @@ for (p in packages){
 
 dataset_1 <- read_rds("data/rds/dataset_1.rds")
 dataset_2 <- read_rds("data/rds/dataset_2.rds")
+dataset_3 <- read_rds("data/rds/dataset_3.rds")
 dataset_4 <- read_rds("data/rds/dataset_4.rds")
 
 edutitle <- c("All",as.character(unique(dataset_1$educationLevel)))
 educode <- c("All",as.character(unique(dataset_1$educationLevel)))
-#eduChoices <- setNames((as.character(educode)),edutitle)
 names(educode) <- edutitle
 
 agetitle <- c("All",as.character(unique(dataset_1$agegroup)))
-
 agecode <- c("All",as.character(unique(dataset_1$agegroup)))
-
-#ageChoices <- setNames((as.character(agecode)),agetitle)
 names(agecode) <- agetitle
+
 
 
 
@@ -46,14 +44,7 @@ ui <- navbarPage(
                )
              ),
   tabPanel("Finance Variation ",
-           sidebarPanel(width =3,
-             radioButtons("period", 
-                          label = "Choose Time Period",
-                          choices = list("Hourly" = "hour_of_day",
-                                         "Daily" = "day_of_month",
-                                         "Weekly" = "week_day",
-                                         "Monthly" = "MonthYear"), 
-                          selected = "day_of_month"),
+           sidebarPanel(width =3
            ),
            mainPanel(width = 9,
                      plotOutput("plot2",
@@ -76,6 +67,35 @@ tabPanel("Expense Calendar",
          ),
          mainPanel(width = 9,
                    plotOutput("plot3",
+                              height = "500px")
+         )
+         
+),
+tabPanel("Prediction",
+         sidebarPanel(width =3,
+                      radioButtons("prededulevel", 
+                                   label = "Select Education Level:",
+                                   choices = educode, 
+                                   selected = "All"
+                      ),
+                      radioButtons("predagelevel", 
+                                   label = "Select Age Group:",
+                                   choices = agecode, 
+                                   selected = "All"
+                      ),                      
+                      radioButtons("predperiod",
+                                   label = "Select Forecast Period:",
+                                   choices = c("6 months" ,
+                                               "12 months" ,
+                                               "18 months" )
+                      ),
+                      radioButtons("predmodel", 
+                                   label = "Select Model:",
+                                   choices = c("ARIMA","ETS", "TSLM", "AR")
+                      )
+         ),
+         mainPanel(width = 9,
+                   plotOutput("plot4",
                               height = "500px")
          )
          
@@ -224,7 +244,85 @@ server <- function(input, output){
             plot.title = element_text(size = 20, hjust = 0.5))+
       ggtitle("Average Daily Expense of Residents")
   })
-
+  plot4_data <- reactive({
+    
+    req(input$prededulevel)
+    req(input$predagelevel)
+    req(input$predmodel)
+    req(input$predperiod)
+    
+    if(input$prededulevel == 'All' && input$predagelevel == 'All')
+    {
+      dataset_5 <- dataset_1
+    }
+    else if(input$prededulevel == 'All' && input$predagelevel != 'All'){
+      dataset_5 <- dataset_1%>%
+        filter(agegroup == input$predagelevel) 
+    }
+    else if(input$prededulevel != 'All' && input$predagelevel == 'All'){
+      dataset_5 <- dataset_1%>%
+        filter(educationLevel == input$prededulevel)
+    }
+    else{
+      dataset_5 <- dataset_1%>%
+        filter(educationLevel == input$prededulevel) %>%
+        filter(agegroup == input$predagelevel) 
+    }
+    
+    forecast_data <- dataset_5 %>%
+      mutate(Time = yearmonth(timestamp))%>%
+      group_by(Time,participantId) %>%
+      summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
+      ungroup() %>%
+      group_by(Time) %>%
+      summarise(income = mean(income),expense = mean(expense))
+    
+    forecast_data <- as_tsibble(forecast_data, index = Time)
+    
+    return(forecast_data)
+    
+    })
+  
+  output$plot4 <- renderPlot({
+    
+    data_for_plot4 <- plot4_data()
+    print(input$predperiod)
+    
+    predictionModel <- req(input$predmodel)
+    
+    if(predictionModel == "ARIMA")
+    {
+      data_for_plot4%>%
+        model(ARIMA(income)) %>%
+        forecast(h = input$predperiod) %>%
+        autoplot(data_for_plot4) +
+        theme_light()
+    }
+    else if(predictionModel == "ETS")
+    {
+      data_for_plot4%>%
+        model(ETS(income)) %>%
+        forecast(h = input$predperiod) %>%
+        autoplot(data_for_plot4) +
+        theme_light()
+    }
+    else if(predictionModel =="TSLM")
+    {
+      data_for_plot4%>%
+        model(TSLM(income)) %>%
+        forecast(h = input$predperiod) %>%
+        autoplot(data_for_plot4) +
+        theme_light()
+    }
+    else if(predictionModel =="AR")
+    {
+      data_for_plot4%>%
+        model(AR(income)) %>%
+        forecast(h = input$predperiod) %>%
+        autoplot(data_for_plot4) +
+        theme_light()
+    }
+  })
 }
 
 shinyApp(ui = ui, server = server)
