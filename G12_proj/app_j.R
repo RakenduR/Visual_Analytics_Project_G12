@@ -184,9 +184,9 @@ ui <- fluidPage(
   ),
   navbarMenu("Employer",icon = icon("bar-chart-o"),
              tabPanel("Employer Health",
-                      sidebarPanel(width = 2.5,
+                      sidebarPanel(width = 3,
                                    selectInput(inputId = "educationrequired",
-                                               label = "Select Education Requirement",
+                                               label = "Select Education Level",
                                                choices = c("Low" = "Low",
                                                            "High School or College" = "HighSchoolOrCollege",
                                                            "Bachelors" = "Bachelors",
@@ -196,21 +196,21 @@ ui <- fluidPage(
                                    sliderInput(inputId = "bins",
                                                label = "Number of Bins",
                                                min = 4,
-                                               max = 12,
-                                               value = 6),
+                                               max = 20,
+                                               value = 12),
                                    sliderInput(inputId = "jobshourlyrate",
                                                label = "Select Hourly Rate for map plot",
-                                               value = c(0,100),
-                                               min = 0,
+                                               value = c(10,100),
+                                               min = 10,
                                                max = 100)
                                    ),
-                      mainPanel(width = 9, plotOutput("Wagespread"),tmapOutput("jmap"))),
+                      mainPanel(width = 9, fluidRow(column(width = 6,plotOutput("Wagespread", height = "850px")), column(width = 6, tmapOutput("jmap", height = "850px"))))),
              tabPanel("Employment Patterns",
                       sidebarPanel(width = 3,
                                    selectInput(inputId = "categoryj",
                                                label = "Select Categorical X-Variable for Comparison against Hourly Wage Rate",
                                                choices = c("Age group for average age hired" = "agegroupj",
-                                                           "Education Required" = "educationRequirement"),
+                                                           "Education Level" = "educationRequirement"),
                                                selected = "educationRequirement"),
                                    selectInput(inputId = "testj",
                                               label = "Type of statistical test:",
@@ -226,10 +226,10 @@ ui <- fluidPage(
                                                            "violin" = "violin"),
                                                selected = "boxviolin"),
                                    selectInput(inputId = "yvariablej",
-                                               label = "Select y-variable for correlation plot against average age hired:",
+                                               label = "Select Y-Variable for correlation plot against average age hired:",
                                                choices = c("Hourly Wage Rate" = "hourlyRate",
                                                            "No. of jobs hired for" = "jobshired"),
-                                               selected = "hourlyRate"),
+                                               selected = "jobshired"),
                                    selectInput(inputId = "testj2",
                                                label = "Type of statistical test:",
                                                choices = c("parametric" = "p",
@@ -241,13 +241,40 @@ ui <- fluidPage(
                                                  label = "Display marginal graphs", 
                                                  value = TRUE)
                                    ),
-                      mainPanel(width = 9, height = 20, plotOutput("employmentpattern"))
+                      mainPanel(width = 9, plotOutput("employmentpattern", height = "600px"))
                       ),
-             tabPanel("Turnover"))
+             tabPanel("Turnover",
+                      sidebarPanel(width = 3,
+                                   selectInput(inputId = "educationrequired2",
+                                               label = "Select Education Level for turnover map plot",
+                                               choices = c("Low" = "Low",
+                                                           "High School or College" = "HighSchoolOrCollege",
+                                                           "All" = "All"),
+                                               selected = "All"),
+                                   sliderInput(inputId = "jobshourlyrate2",
+                                               label = "Select Hourly Rate for turnover map plot",
+                                               value = c(10,22),
+                                               min = 10,
+                                               max = 22),
+                                   selectInput(inputId = "educationrequired3",
+                                               label = "Select Education Level for jobs with 0 applicants map plot",
+                                               choices = c("Low" = "Low",
+                                                           "High School or College" = "HighSchoolOrCollege",
+                                                           "Bachelors" = "Bachelors",
+                                                           "Graduate" = "Graduate",
+                                                           "All" = "All"),
+                                               selected = "All"),
+                                   sliderInput(inputId = "jobshourlyrate3",
+                                               label = "Select Hourly Rate for jobs with 0 applicants map plot",
+                                               value = c(10,20),
+                                               min = 10,
+                                               max = 20)
+                      ),
+            mainPanel(width = 9, plotOutput("turnover", height = "180px"), fluidRow(column(width = 6, tmapOutput("turnovermap", height = "700px")), column(width = 6, tmapOutput("turnovermap2", height = "700px"))))
+            ))
   )
 )
-
-
+                      
 #========================#
 ###### Shiny Server ######
 #========================#
@@ -387,28 +414,27 @@ server <- function(input, output){
       guides(fill = FALSE, scale = "none") +
       theme_bw()
     
-    j+j2
+    j/j2
   })
   
   output$jmap <- renderTmap({
-    tmap_mode("plot")
-    j3 <- tm_shape(jbuildings)+
+  j3<-tm_shape(jbuildings)+
       tm_polygons(col = "lightgrey",
                   size = 1,
                   border.col = "black",
                   border.lwd = 1)+
       tm_shape(jjobs2()) +
       tm_bubbles(col = "educationRequirement",
-                 alpha = 0.5,
+                 alpha = 0.7,
                  style = "jenks",
                  palette="RdYlBu",
                  size = "hourlyRate",
                  scale = 1,
                  border.col = "black",
-                 border.lwd = 0.5
-      ) + 
-      tm_layout(main.title = "Map for jobs and their hourly rate", title.position = c('right', 'top'), legend.show =TRUE, legend.position =  "right") +
-      tm_compass()
+                 border.lwd = 0.5,
+                 title.col = "Education Level", id = "jobId",
+                 popup.vars=c("Job ID" = "jobId","Employer ID" = "employerId", "Hourly Wage" = "hourlyRate", "Education Level" = "educationRequirement")
+      ) 
     })
   ##### Shiny Server: Employer : Employment Patterns ##### 
   jobs$`mean(age)`[is.na(jobs$`mean(age)`)] <- 0
@@ -451,7 +477,7 @@ server <- function(input, output){
                     "Education Required"),
       ylab = "Hourly Rate",
       title = ifelse(input$categoryj == "agegroupj", "Are there any patterns between hourly rate and average age hired?",
-                     "Are there any patterns between hourly rate and education required?"),
+                     "Are there any patterns between hourly rate and education level?"),
       messages = FALSE)
    
    j6<- ggscatterstats(
@@ -469,11 +495,140 @@ server <- function(input, output){
    
    j5+j6 + plot_annotation(
      title = ifelse(input$categoryj =="agegroupj", "Investigating if there are any employment patterns when it comes to age",
-                    "Investigating if there any employment patterns when it comes to age and education level"),
+                    "Investigating if there are any employment patterns when it comes to age and education level"),
      theme = theme(plot.title = element_text(size = 14, face = "bold"))
    )
   }) 
- 
+  ##### Shiny Server: Employer : turnover ##### 
+  jobs$Turnover[is.na(jobs$Turnover)] <- 0
+  output$turnover <- renderPlot({
+    j7 <- jobs %>%
+      filter(Turnover > 1) %>%
+      ggplot(aes(x=educationRequirement)) +
+      geom_bar(fill = "steelblue") +
+      ylim(0, 60) + 
+      geom_text(stat = "count",
+                aes(label = stat(count)),
+                hjust = -0.5,
+                size = 4) +
+      labs(title = "No.of jobs with high turnover rate by education level",
+           x = "Education Level",
+           y = "No. of jobs with high turnover rate") +
+      coord_flip()
+    
+    j8 <- jobs %>%
+      filter(Turnover < 1) %>%
+      ggplot(aes(x=educationRequirement)) +
+      geom_bar(fill = "steelblue") + 
+      ylim(0, 160) +
+      geom_text(stat = "count",
+                aes(label = stat(count)),
+                hjust = -0.5,
+                size = 4) +
+      labs(title = "No.of jobs with no job applicants by education level",
+           x = "Education Level",
+           y = "No. of jobs with no job applicants") +
+      coord_flip()
+      
+    
+    j7+j8
+  })
+  
+  jjobs3 <- reactive({
+    if(input$educationrequired2 == "All") {
+      jjobs3 <- jjobs1 %>%
+        filter(Turnover > 1) %>%
+        filter(hourlyRate >= min(input$jobshourlyrate2) & hourlyRate <= max(input$jobshourlyrate2))
+    } else if(input$educationrequired2 == "Low") {
+      jjobs3 <- jjobs1 %>%
+        filter(Turnover > 1) %>%
+        filter(educationRequirement == "Low") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate2) & hourlyRate <= max(input$jobshourlyrate2))
+    } else if (input$educationrequired2 == "HighSchoolOrCollege") {
+      jjobs3 <- jjobs1 %>%
+        filter(Turnover > 1) %>%
+        filter(educationRequirement == "HighSchoolOrCollege") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate2) & hourlyRate <= max(input$jobshourlyrate2))
+    } else if (input$educationrequired2 == "Bachelors") {
+      jjobs3 <- jjobs1 %>%
+        filter %>% (Turnover > 1)
+        filter(educationRequirement == "Bachelors") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate2) & hourlyRate <= max(input$jobshourlyrate2))
+    } else {
+      jjobs3 <- jjobs1 %>%
+        filter(Turnover > 1)
+        filter(educationRequirement == "Graduate") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate2) & hourlyRate <= max(input$jobshourlyrate2))
+    }
+  })
+  
+  jjobs4 <- reactive({
+    if(input$educationrequired3 == "All") {
+      jjobs4 <- jjobs1 %>%
+        filter(Turnover < 1) %>%
+        filter(hourlyRate >= min(input$jobshourlyrate3) & hourlyRate <= max(input$jobshourlyrate3))
+    } else if(input$educationrequired3 == "Low") {
+      jjobs4 <- jjobs1 %>%
+        filter(Turnover < 1) %>%
+        filter(educationRequirement == "Low") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate3) & hourlyRate <= max(input$jobshourlyrate3))
+    } else if (input$educationrequired3 == "HighSchoolOrCollege") {
+      jjobs4 <- jjobs1 %>%
+        filter(Turnover < 1) %>%
+        filter(educationRequirement == "HighSchoolOrCollege") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate3) & hourlyRate <= max(input$jobshourlyrate3))
+    } else if (input$educationrequired3 == "Bachelors") {
+      jjobs4 <- jjobs1 %>%
+        filter %>% (Turnover < 1)
+      filter(educationRequirement == "Bachelors") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate3) & hourlyRate <= max(input$jobshourlyrate3))
+    } else {
+      jjobs4 <- jjobs1 %>%
+        filter(Turnover < 1)
+      filter(educationRequirement == "Graduate") %>%
+        filter(hourlyRate >= min(input$jobshourlyrate3) & hourlyRate <= max(input$jobshourlyrate3))
+    }
+  })
+  
+  output$turnovermap <- renderTmap({
+    j9<-tm_shape(jbuildings)+
+      tm_polygons(col = "lightgrey",
+                  size = 1,
+                  border.col = "black",
+                  border.lwd = 1)+
+      tm_shape(jjobs3()) +
+      tm_bubbles(col = "Turnover",
+                 alpha = 0.7,
+                 style = "jenks",
+                 palette="Paired",
+                 size = "hourlyRate",
+                 scale = 1,
+                 border.col = "black",
+                 border.lwd = 0.5,
+                 title.col = "Turnover Rate", id = "jobId",
+                 popup.vars=c("Job ID" = "jobId","Employer ID" = "employerId", "Hourly Wage" = "hourlyRate", "Turnover Rate" = "Turnover")
+      ) 
+    
+  })
+  output$turnovermap2 <- renderTmap({
+    j10<-tm_shape(jbuildings)+
+      tm_polygons(col = "lightgrey",
+                  size = 1,
+                  border.col = "black",
+                  border.lwd = 1)+
+      tm_shape(jjobs4()) +
+      tm_bubbles(col = "hourlyRate",
+                 alpha = 0.7,
+                 style = "jenks",
+                 palette="RdYlGn",
+                 scale = 1,
+                 border.col = "black",
+                 border.lwd = 0.5,
+                 title.col = "Hourly Wage", id = "jobId",
+                 popup.vars=c("Job ID" = "jobId","Employer ID" = "employerId", "Hourly Wage" = "hourlyRate", "Education\n Level" = "educationRequirement")
+      ) 
+    
+  })
 }
 
 shinyApp(ui = ui, server = server)
