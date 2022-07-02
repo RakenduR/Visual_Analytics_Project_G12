@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 
 ```{r}
-packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales')
+packages = c('tidyverse','ggdist','gghalves','ggthemes','hrbrthemes','ggridges','patchwork','zoo', 'ggrepel','ggiraph','lubridate','gganimate','scales','viridis')
 for(p in packages){
   if(!require(p, character.only = T)){
     install.packages(p)
@@ -30,26 +30,105 @@ financial_data <- read_csv("data/FinancialJournal.csv")
 participants_data <- read_csv("data/Participants.csv")
 ```
 
-## Income grouped by education level
 
-  
 ```{r}
+  participants_data$agegroup <- cut(participants_data$age, breaks = c(17,30,40,50,60), 
+                             labels = c("18-30","30-40","40-50","50-60"))
 
 level_order <- c('Graduate','Bachelors','HighSchoolOrCollege','Low')
 
-  participant_fin <- financial_data %>%
-  mutate(date = as.yearmon(timestamp)) %>%
-  group_by(participantId, date) %>%
-  summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
-  mutate(savings = round(income + expense,digits = 0)) %>%
-  inner_join(participants_data, by =c('participantId'))%>%
-  mutate(educationLevel = factor(educationLevel, levels = level_order))
-  
-  participant_fin$agegroup <- cut(participant_fin$age, breaks = c(17,30,40,50,60), 
-                             labels = c("18-30","30-40","40-50","50-60"))
+dataset_1 <- financial_data %>%
+    inner_join(select(participants_data,participantId, educationLevel,agegroup), by =c('participantId'))%>%
+    mutate(educationLevel = factor(educationLevel, levels = level_order)) %>%
+  mutate(YearMon = as.yearmon(timestamp))
+```
 
+```{r fig.width=16, fig.height=8}
+
+Part_0_fin <- financial_data %>%
+  filter(participantId == 0) %>%
+  mutate(YearMon = as.yearmon(timestamp))%>%
+  group_by(YearMon, category) %>%
+  summarise(amount = sum(amount)) %>%
+  mutate( amount = ifelse(amount < 0,-amount,amount))
 
 ```
+
+```{r  fig.width=16, fig.height=10}
+
+
+dataset_1%>%
+        filter(educationLevel == "Graduate")%>%
+  filter(agegroup =="18-30") %>%
+  group_by(YearMon, category) %>%
+  summarise(amount = sum(amount)) %>%
+  mutate( amount = ifelse(amount < 0,-amount,amount))%>%
+  mutate( percentage = amount/sum(amount)) %>%
+  ggplot(aes(x=YearMon, 
+             y = percentage, 
+             fill =factor(category,levels=c("Wage","Shelter","Recreation","Food","Education","RentAdjustment")))) +
+  geom_area(alpha=0.6, size=1,colour="white") +
+      scale_fill_viridis(discrete = T) +
+    ggtitle("Income and Expense") +
+    theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5)) +
+  scale_fill_discrete(name = "Category")
+```
+
+
+
+
+```{r fig.width=16, fig.height=8}
+
+Part_0_fin <- financial_data %>%
+  mutate(YearMon = as.yearmon(timestamp))%>%
+  group_by(YearMon, category) %>%
+  summarise(amount = mean(amount)) %>%
+  mutate( amount = ifelse(amount < 0,-amount,amount))%>%
+  mutate( percentage = amount/sum(amount))
+
+Part_0_fin%>%
+  ggplot(aes(x=YearMon, 
+             y = percentage, 
+             fill = factor(category,levels=c("Wage","Shelter","Recreation","Food","Education","RentAdjustment")))) +
+  geom_area(alpha=0.6, size=1,colour="white") +
+  facet_grid(category ~.)+
+      scale_fill_viridis(discrete = T) +
+    ggtitle("Income and Expense") +
+    theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16),
+        plot.title = element_text(size =20,hjust = 0.5)) +
+  scale_fill_discrete(name = "Category")
+```
+
+
+
+## Income grouped by education level
+
+
 
 
 ```{r}
@@ -64,13 +143,7 @@ participant_fin <- read_rds("data/rds/participant_fin.rds")
 ```
 
 
-```{r}
 
-Education_fin <- participant_fin %>%
-  group_by(educationLevel,date) %>%
-  summarise(income = mean(income), expense= mean(expense))
-  
-```
 
 
 ```{r  fig.width=16, fig.height=8}
@@ -95,7 +168,6 @@ Education_fin %>%
         legend.text = element_text(size = 16),
         plot.title = element_text(size =20,hjust = 0.5))+
   ggtitle("Average Income by Education Level")+
-    #scale_fill_manual(values = c("#ff6666","#FFCC33","#66cc33","#33ccff"))
   scale_fill_brewer(palette = "Set2")+
   scale_y_continuous(breaks = seq(0,30000,5000))
 
@@ -143,12 +215,115 @@ age_fin %>%
 ### Graph 2 - Income and expense of different Education Groups/Age Groups
 # Add Legend separately?
 
+```{r}
+  participants_data$agegroup <- cut(participants_data$age, breaks = c(17,30,40,50,60), 
+                             labels = c("18-30","30-40","40-50","50-60"))
+
+level_order <- c('Graduate','Bachelors','HighSchoolOrCollege','Low')
+
+dataset_1 <- financial_data %>%
+    inner_join(select(participants_data,participantId, educationLevel,agegroup), by =c('participantId'))%>%
+    mutate(educationLevel = factor(educationLevel, levels = level_order)) %>%
+  mutate(YearMon = as.yearmon(timestamp))
+```
+
+```{r}
+
+dataset_2 <- dataset_1 %>%
+  group_by(participantId, YearMon, educationLevel,agegroup) %>%
+  summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
+  mutate(savings = round(income + expense,digits = 0))%>%
+  ungroup()%>%
+  group_by(YearMon, educationLevel,agegroup) %>%
+  summarise(income = mean(income),expense = mean(expense))
+
+
+```
+
+```{r}
+
+dataset_3 <- dataset_1 %>%
+  mutate(Label = ifelse(YearMon == max(YearMon), ifelse(amount >= 0,"Income","Expense"), NA)) %>%
+  mutate(revenue = ifelse(amount >= 0,"Income","Expense")) %>%
+  group_by(participantId, YearMon, educationLevel,agegroup, Label,revenue) %>%
+  summarise(amount = sum(amount)) %>%
+  ungroup()%>%
+  group_by(YearMon, educationLevel,agegroup, Label,revenue) %>%
+  summarise(amount = mean(amount))
+
+
+```
+
 ```{r  fig.width=16, fig.height=8}
 
-Education_fin %>%
+dataset_3 %>%
   filter(educationLevel == "Graduate") %>%
-  ggplot(aes(x=date))+
-  geom_line(aes(y=income),color ="steelblue")+
+  filter(agegroup == "18-30") %>%
+  ggplot(aes(x=YearMon, y = amount, group = revenue))+
+  geom_line(aes(color = revenue), size = 1)+
+  geom_label(aes(label = Label), size = 4) +
+  ylab("Income")+
+  xlab("Month, Year")+
+  theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.position = "none",
+        plot.title = element_text(size =20,hjust = 0.5))+
+  ggtitle("Average Income by Education Level")
+
+```
+
+
+```{r  fig.width=16, fig.height=8}
+
+dataset_3 %>%
+  ggplot(aes(x=YearMon, y = amount, group = revenue))+
+  geom_line(aes(color = revenue), size = 1)+
+  geom_text(aes(label = Label),nudge_x = 0.15, size = 4) +
+  facet_grid(educationLevel ~ agegroup)+
+  ylab("Income")+
+  xlab("Month, Year")+
+  theme(axis.title.y=element_text(angle =0),
+        axis.title.x=element_text(margin = margin(t=-10)),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_line(colour = "grey90"),
+        panel.grid.major.x = element_line(colour = "grey90"),
+        panel.grid.major.y = element_line(colour = "grey90"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+        axis.text.y = element_text(size =16),
+        axis.line = element_line(color="grey25", size = 0.02),
+        axis.title = element_text(size=16),
+        legend.position = "none",
+        plot.title = element_text(size =20,hjust = 0.5))+
+  ggtitle("Average Income by Education Level")
+
+```
+
+```{r}
+
+Education_fin <- participant_fin %>%
+  group_by(educationLevel,date) %>%
+  summarise(income = mean(income), expense= mean(expense))
+  
+```
+
+```{r  fig.width=16, fig.height=8}
+
+dataset_2 %>%
+  filter(educationLevel == "Graduate") %>%
+  filter(agegroup == "18-30") %>%
+  ggplot(aes(x=YearMon))+
+  geom_line(aes(y=income),color ="steelblue", label = "income")+
+      geom_label() +
   geom_line(aes(y=-expense), color = "darkred")+
   ylab("Income")+
   xlab("Month, Year")+
@@ -166,8 +341,7 @@ Education_fin %>%
         legend.title = element_text(size =16),
         legend.text = element_text(size = 16),
         plot.title = element_text(size =20,hjust = 0.5))+
-  ggtitle("Average Income by Education Level")+
-  scale_y_continuous(breaks = seq(0,100,10))
+  ggtitle("Average Income by Education Level")
 
 ```
 ### Average income and expense grouped by different periods 
@@ -265,10 +439,10 @@ Fin_data_for_plot%>%
 ###Heatmap - expenses of participants dynamically group by period
 
 ```{r fig.width=16, fig.height=8}
-wkday_levels <- c('Saturday', 'Friday', 
+wkday_levels <- c( 'Friday', 
                   'Thursday', 'Wednesday', 
                   'Tuesday', 'Monday', 
-                  'Sunday')
+                  'Sunday','Saturday')
 
 expense_data <- financial_data %>%
   mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
@@ -298,6 +472,129 @@ expense_data%>%
         axis.title.x = element_text(size=14))
 
 ```
+
+```{r fig.width=16, fig.height=8}
+wkday_levels <- c( 'Friday', 
+                  'Thursday', 'Wednesday', 
+                  'Tuesday', 'Monday', 
+                  'Sunday','Saturday')
+wk_levels <- c(5,4,3,2,1)
+
+dataset_4 <- dataset_1 %>%
+  filter(!category %in% c("Shelter")) %>%
+  filter(amount<0) %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+    filter(date <'2023-03-01')%>%
+  mutate(wkday = factor(weekdays(date),levels = wkday_levels)) %>%
+  mutate(month = month(date)) %>%
+  mutate(day = day(date)) %>%
+  mutate(wkofmonth = factor(week(date) - week(floor_date(date, unit = "months")),levels = wk_levels)) %>%
+  group_by(participantId, date, category, educationLevel, agegroup,wkday,month,wkofmonth,day) %>%
+  summarise(amount = sum(amount)) %>%
+  ungroup() %>%
+  group_by(date,educationLevel,agegroup,wkday,month,wkofmonth,day)%>%
+  summarise(Avgexpense = mean(amount))
+
+```
+
+
+```{r}
+wkday_levels <- c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')
+wk_levels <- c(6,5,4,3,2,1,0)
+
+dataset_4 <- dataset_1 %>%
+  filter(!category %in% c("Shelter","Education")) %>%
+  filter(amount<0) %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+    filter(date <'2023-03-01')%>%
+  mutate(wkday = factor(weekdays(date,abbreviate = TRUE),levels = wkday_levels)) %>%
+  mutate(month = month(date,label = TRUE)) %>%
+  mutate(day = day(date)) %>%
+  mutate(wkofmonth = factor(as.numeric(date-floor_date(date, unit = "months")) %/% 7,levels = wk_levels)) %>%
+  group_by(date,wkday,month,wkofmonth,day,educationLevel,agegroup)%>%
+  summarise(Avgexpense = mean(-amount))
+
+```
+
+```{r}
+D = as.Date("2022-03-03")
+#as.numeric(D - floor_date(D, unit = "week")) %/% 7
+floor_date(D, unit = "week")
+```
+
+
+```{r fig.width=10, fig.height=8}
+dataset_4%>%
+    group_by(date,wkday,month,wkofmonth,day)%>%
+  summarise(Avgexpense = mean(Avgexpense)) %>%
+  ggplot(aes(wkday,wkofmonth,fill=Avgexpense))+
+  geom_tile(color = "white", size = 0.1)+
+  geom_text(aes(label = day), color = "white") +
+  facet_wrap(~month,nrow = 3) +
+  theme_tufte(base_family = "Helvetica")+
+  coord_equal() +
+  scale_fill_gradient(name = "Expense",
+                    low = "sky blue", 
+                    high = "dark blue",
+                    labels = comma)+
+  labs(x = NULL, 
+     y = NULL, 
+     title = "Average Daily Expense of Residents") +
+  theme(axis.text = element_text(size = 9,margin = margin(r = -60)),
+        axis.ticks= element_blank(),
+        axis.text.y = element_blank(),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16))
+```
+
+
+```{r fig.width=16, fig.height=8}
+wkday_levels <- c('Sun','Mon','Tue','Wed','Thu','Fri','Sat')
+wk_levels <- c(6,5,4,3,2,1)
+
+dataset_4 <- dataset_1 %>%
+  filter(!category %in% c("Shelter","Education")) %>%
+  filter(amount<0) %>%
+  mutate(date = as.Date(timestamp,"%m/%d/%Y")) %>%
+    filter(date <'2023-03-01')%>%
+  mutate(wkday = factor(weekdays(date,abbreviate = TRUE),levels = wkday_levels)) %>%
+  mutate(month = month(date,label = TRUE)) %>%
+  mutate(day = day(date)) %>%
+  mutate(year = year(date))%>%
+  mutate(wk = format(date, '%W')) %>%
+  group_by(date,year,month,wk,wkday,day)%>%
+  summarise(Avgexpense = mean(-amount))
+
+```
+
+
+```{r fig.width=10, fig.height=8}
+dataset_4%>%
+  ggplot(aes(wkday,wk,fill=Avgexpense))+
+  geom_tile(color = "white") +
+  facet_wrap(~month)
+```
+
+
++
+  geom_text(aes(label = day), color = "white") +
+  facet_wrap(~month,nrow = 3, as.table = TRUE) +
+  theme_tufte(base_family = "Helvetica")+
+  coord_equal() +
+  scale_fill_gradient(name = "Expense",
+                    low = "sky blue", 
+                    high = "dark blue",
+                    labels = comma)+
+  labs(x = NULL, 
+     y = NULL, 
+     title = "Average Daily Expense of Residents") +
+  theme(axis.text = element_text(size = 9,margin = margin(r = -60)),
+        axis.ticks= element_blank(),
+        axis.text.y = element_blank(),
+        legend.title = element_text(size =16),
+        legend.text = element_text(size = 16))
+```
+
 
 ```{r}
 
