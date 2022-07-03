@@ -88,6 +88,21 @@ ui <- navbarPage(
   tabPanel(title = "Overview",icon = icon("globe"),
            mainPanel(
              ##### Introduction #####
+             h1("Once upon a time.."),
+             p("Engagement was a small town in Ohio. Not anymore. It is now buzzling with activity and experiencing an economic growth spurt.
+                To keep up with the sudden emergence of businesses and increase in number of occupants, it is important that infrastructure
+                undergoes rapid but planned development. To enable such a well planned development, let us explore, analyse and predict the 
+                economic criteria of Engagement."),
+             h3("Lets begin our Journey through the streets of Engagement.."),
+             h4("Directions:"),
+             p("Under the *Business* tab, you will find a detailed study of the businesses in Engagement.We will analyse how these businesses are performing"),
+             p("Under the Finance tab, we will study the income and expenditure of the residents.We will compare the Financial situation of various groups
+               of residents having different Educational Qualifications and from different age groups.We will also analyse the spending patterns of the 
+               residents to understand what are the infrastructure and amenities that needs to be developed.We will also predict the growth in income of the 
+               residents which will in turn help to understand their spending capacity."),
+             p("Under the Employers tab, we will study the employement patterns by the various establishments in Ohio and their location. We will also 
+               study the employment patterns over different groups of residents with different Education Levels and belonging to different age groups.We 
+               will also study the job opportunities in Engagement to understand the jobs with high turnover.")
            )
   ),
   ##### Q1 UI #####
@@ -159,8 +174,6 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
                     )
            ),
            tabPanel("Finance Variation ",
-                    sidebarPanel(width =3
-                    ),
                     mainPanel(width = 9,
                               plotOutput("plot2",
                                          height = "500px")
@@ -228,7 +241,7 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
 
 
 ##### Q3 UI #####
-navbarMenu("Employer",icon = icon("bar-chart-o"),
+navbarMenu("Employer",icon = icon("bar-chart-o", verify_fa = FALSE),
            tabPanel("Employer Health",
                     sidebarPanel(width = 3,
                                  selectInput(inputId = "educationrequired",
@@ -335,9 +348,7 @@ server <- function(input, output) {
   
   
   output$revenue <- renderPlot({
-    print(input$venue)
-    print(input$period)
-    print(input$group)
+
     p <- group %>%
       filter(monthYear == input$period, venue == input$venue ) %>%
       group_by(!!!rlang::syms(input$group), travelEndLocationId) %>%
@@ -444,8 +455,7 @@ server <- function(input, output) {
     
     req(input$edulevel)
     req(input$agelevel)
-    print(input$edulevel)
-    print(input$agelevel)
+
     
     if(input$edulevel == 'All' && input$agelevel == 'All')
     {
@@ -533,7 +543,7 @@ server <- function(input, output) {
       ungroup()
     
     forecast_data_1 <- as_tsibble(forecast_data, index = Time)
-    View(forecast_data_1)
+
     return(forecast_data_1)
     
   })
@@ -541,7 +551,7 @@ server <- function(input, output) {
   output$plot4 <- renderPlot({
     
     data_for_plot4 <- plot4_data()
-    print(input$predperiod)
+
     
     predictionModel <- req(input$predmodel)
     
@@ -582,7 +592,7 @@ server <- function(input, output) {
   output$selection <- DT::renderDataTable({
     
     data_for_plot4 <- plot4_data()
-    print(input$predmodel)
+
     
     
     if (input$predmodel == "ARIMA"){
@@ -622,7 +632,7 @@ server <- function(input, output) {
   
   output$residuals <- renderPlot({
     data_for_plot4 <- plot4_data()
-    print(input$predmodel)
+
     if (input$predmodel == "ARIMA"){
       
       data_for_plot4 %>%
