@@ -1,5 +1,5 @@
 name: "VA_Project_Group_12"
-title: "Visual Analysis of Economy"
+title: "Vastly Challenging Economics"
 description: |
   VisualAnalysisofEconomy
 output_dir: "_site"
@@ -7,9 +7,10 @@ navbar:
   right:
     - text: "Home"
       href: index.html
-    - text: "About"
-      href: about.html
-  left:
-  - text: "Project Proposal"
-    href: "proposal/Proposal.html"
+    - text: "Proposal"
+      href: "proposal/Proposal.html"
+    - text: "Rshiny App"
+      href: "https://isss608vaproject.shinyapps.io/G12_proj/"
+    - text: "Poster"
+      href: "https://vast-challenge.github.io/2022/index.html"
 output: distill::distill_article

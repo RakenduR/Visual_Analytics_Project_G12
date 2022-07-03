@@ -1,7 +1,7 @@
 ---
-title: "Visual Analysis of Economy"
+title: "Vastly Challenging Economics"
 description: |
-  Study of the Financial health of the city Engagement, Ohio, USA!
+  A study of the financial health of the city Engagement, Ohio, USA!
 site: distill::distill_website
 ---
 
@@ -12,4 +12,63 @@ knitr::opts_chunk$set(echo = FALSE)
 # https://rstudio.github.io/distill/website.html
 
 ```
+
+# A Deep Dive into the financial health of the city of Engagement, Ohio
+
+
+### Jeremiah Lam | Shachi Raodeo | Rakendu Ramesh
+
+A city or country's economy plays an integral role in society, as businesses and individuals livelihoods depend on it. In an economic recession, retrenchments are inevitable and businesses see a lost in revenue, which may subsequently see them close down. Conversely, in an economic boom, there's an increase in both income and spending across businesses and individuals. Within an economy, there are patterns we can observe, for example, how are businesses or sectors performing, how much are individuals spending, who are businesses employing.
+
+## Introduction
+
+The [**VAST Challenge 2022**](https://vast-challenge.github.io/2022/about.html) presented an exciting opportunity to understand and analyse the economy of the city of Engagement, Ohio. As a city anticipating rapid growth, it is paramount to first understand the current state of the city and identify opportunities for future growth. We would like to make use of a range of visualisation techniques and visual analytics to reveal the financial health of the city.
+
+With the creation of a RShiny app, users will be able to:
+
+- Visualise which are the prosperous and struggling businesses (i.e. pub, restaurants) in the city of Engagement, Ohio for the period data was collected from its participants
+
+- Visualise the income and overall cost of living for participants across different age groups and education levels, and analyse patterns across these groups living in the city of Engagement, Ohio for the period data was collected from them
+
+- Predict the income of participants living in the city of Engagement, for the next 6-18 months, based on their age and education level, from the time data was collected from them
+
+- Visualise the health of various employers within the city, based on the jobs they're offering to various education levels and their hourly rate
+
+- Analyse employment patterns based on the hourly rate and job openings they're offering to various education levels and age groups
+
+- Identify areas in the city of Engagement with high turnover and areas with difficulty hiring applicants (i.e. 0 job applicants for the job role)
+
+
+## Proposal
+
+The dataset was acquired from [**VAST Challenge 2022**](https://vast-challenge.github.io/2022/index.html). It contains 3 large sets of data. **Activity logs** tracks the the daily activities of the participants in the city. **Attributes** contains the attributes of the city including the jobs that are offered, details of the participants, employers, restaurants and pubs. **Journals** has information on where participants have gone, the spending and wages of participants and who they interacted with.
+
+In order to visualise the financial health of the city effectively, a multi-pronged approach was considered, starting with a descriptive analysis of the datasets by showing the :
+
+- Revenue and foot-traffic of the various businesses (i.e. pubs and restaurants) over time
+
+- Income and expenses of participants of different education levels and age groups over time
+
+- Jobs offered to various education levels and their respective hourly wage
+
+- Jobs with high turnover rates and jobs that employer's are finding difficult to fill
+
+This will be conducted using line charts, histogram and barcharts, boxplots, sparklines and maps.
+
+Next, correlation analysis was conducted between average age hired for a job, and the offered hourly rate or the number of jobs they were hired for. This was to glean any insights of any potential correlations between them. Also, a one-way ANOVA test was done between hourly wage, and either education level or age groups for average age hired, to see if there was any statistical evidence proving that there is a difference in mean hourly rate within different education levels or age groups (i.e. certain education levels getting paid more, certain age groups are getting paid more).
+
+Lastly, predictive analysis was conducted on the historical data provided, in order to forecast future income of participants of different age group and education levels. This was conducted by employing a plethora of models such as ARIMA, ETS, TSLM and autoregressive models.
+
+We hope that through our app, users will be able to better appreciate the financial health of the city of Engagement, Ohio, as well as use our app to forecast the income of its participants to better anticipate the economic state of the city.
+
+Lastly, you may view our draft proposal [**here**](https://group12-va-project.netlify.app/proposal/proposal)!
+
+## RShiny App
+
+Do visit [**here**](https://isss608vaproject.shinyapps.io/G12_proj/) to view our app!
+
+## Poster
+
+Do visit [**here**]() to view our poster!
+
 
