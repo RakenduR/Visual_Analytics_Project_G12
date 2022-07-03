@@ -8,9 +8,9 @@ navbar:
     - text: "Home"
       href: index.html
     - text: "Proposal"
-      href: "proposal/Proposal.html"
+      href: "https://group12-va-project.netlify.app/#proposal"
     - text: "Rshiny App"
       href: "https://isss608vaproject.shinyapps.io/G12_proj/"
     - text: "Poster"
-      href: "https://vast-challenge.github.io/2022/index.html"
+      href: "ISS608_Group12_Poster.pdf"
 output: distill::distill_article
