@@ -6,7 +6,7 @@
 pacman::p_load(shiny,tidyverse,lubridate,zoo,ggthemes,hrbrthemes,ggdist,gghalves,
               ggridges,patchwork,zoo, ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
               tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf, leaflet,
-              rstantools, reactable, reactablefmtr,gt, gtExtras, fpp3)
+              rstantools, reactable, reactablefmtr,gt, gtExtras, fpp3,DT)
 
 
 
