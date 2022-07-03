@@ -6,7 +6,7 @@
 pacman::p_load(shiny,tidyverse,lubridate,zoo,ggthemes,hrbrthemes,ggdist,gghalves,
               ggridges,patchwork,zoo, ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
               tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf, leaflet,
-              rstantools)
+              rstantools, reactable, reactablefmtr,gt, gtExtras)
 
 
 
@@ -20,6 +20,11 @@ travel_filt <- read_rds('data/rds/travel_filt.rds')
 restaurants <- read_csv("data/Restaurants.csv")
 pubs <- read_csv("data/Pubs.csv")
 
+
+pubs_loc <- read_sf("data/Pubs.csv", options = "GEOM_POSSIBLE_NAMES=location")
+restaurants_loc <- read_sf("data/Restaurants.csv", options = "GEOM_POSSIBLE_NAMES=location")
+buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=location")
+
 data_travel= travel_filt %>%
   mutate(weekday = weekdays(checkInTime),
          day = day(checkInTime),
@@ -28,11 +33,13 @@ data_travel= travel_filt %>%
          monthYear = as.yearmon(checkInTime),
          travelEndLocationId=as.character(travelEndLocationId),
          timeSpent = checkOutTime - checkInTime,
+         travelTime = travelEndTime- travelStartTime,
          participantId=as.character(participantId),
          purpose=as.character(purpose))
 data_travel$timeSpent <- as.numeric(as.character(data_travel$timeSpent))
+data_travel$travelTime <- as.numeric(as.character(data_travel$travelTime))
 
-data_travel <- data_travel[,c("participantId","travelStartLocationId", "travelEndLocationId", "purpose",  "amountSpent","timeSpent","weekday","day","month","year","monthYear")]
+data_travel <- data_travel[,c("participantId","travelStartLocationId", "travelEndLocationId", "purpose",  "amountSpent","timeSpent","travelTime","weekday","day","month","year","monthYear")]
 
 group_pub <-merge(x=data_travel, y=pubs, by.x = "travelEndLocationId", by.y = "pubId")
 group_pub$venue <- "Pub"
@@ -46,6 +53,22 @@ group <-rbind(group_pub, group_restaurant)
 
 period <- unique(na.omit(group$monthYear))
 
+participant <- unique(na.omit(group$participantId))
+
+venueid_pub <- unique(na.omit(group_pub$travelEndLocationId))
+venueid_rest <- unique(na.omit(group_restaurant$travelEndLocationId))
+venueid <- unique(na.omit(group$travelEndLocationId))
+
+group_pub_loc <-merge(x=data_travel, y=pubs_loc, by.x = "travelEndLocationId", by.y = "pubId")
+group_pub_loc$venue <- "Pub"
+group_pub_loc$foodCost <- 0.00
+group_restaurant_loc<-merge(x=data_travel, y=restaurants_loc, by.x = 'travelEndLocationId', by.y =  'restaurantId')
+group_restaurant_loc$venue <- "Restaurant"
+group_restaurant_loc$hourlyCost <- 0.00
+group_loc <-rbind(group_pub_loc, group_restaurant_loc)
+
+group_spars <- group
+group_spars$Venue <- group_spars$travelEndLocationId
 
 ##### Q2 #####
 dataset_1 <- read_rds("data/rds/dataset_1.rds")
@@ -78,7 +101,9 @@ jjobs <- read_sf("data/jjobs.csv",
 
 
 
-ui <- navbarPage(
+ui <- fluidPage(
+  theme = bs_theme(bootswatch = "minty"),
+  navbarPage(
   title = "Vastly Challenging Economics",
   fluid = TRUE,
   collapsible = TRUE,
@@ -107,7 +132,7 @@ ui <- navbarPage(
   ),
   ##### Q1 UI #####
 navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
-           tabPanel("Revenue",
+           tabPanel("Change in revenue",
                     sidebarPanel(
                       width = 3,
                       radioButtons("venue", 
@@ -116,6 +141,8 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                                   "Restaurant" = "Restaurant"), 
                                    selected = "Pub"
                       ),
+                      # add selection for participant ID for graph 2
+                      # add axis scale selection for plot 3
                       
                       selectInput(input = "period", 
                                   label = "Choose Period:",
@@ -135,19 +162,259 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                       width = 9,
                       fluidRow(
                         column(width = 12,
-                               
-                               plotOutput("revenue",
-                                          height = "500px")
+                               h4("Change in Revenue for restaurants and Pubs for city of Engagement, Ohio \n\n\n"),
+                               plotlyOutput("revenue", 
+                                            height = "500px",
+                                            width = "850px"),
                                
                         )
                       )
                     )
+                    
+                    
            ),
-           tabPanel("Q1A",
-             
-           ),
-           tabPanel("Q1B",
+           tabPanel("Grouped change in Revenue",
+                    sidebarPanel(
+                      width = 3,
+                      radioButtons("venue_2", 
+                                   label = "Select the Venue:",
+                                   choices = list("Pub" = "Pub", 
+                                                  "Restaurant" = "Restaurant"), 
+                                   selected = "Pub"
+                      ),
+                      # add selection for participant ID for graph 2
+                      # add axis scale selection for plot 3
+                      
+                      selectInput(input = "period_2", 
+                                  label = "Choose Period:",
+                                  choices = c(period),
+                                  multiple = TRUE,
+                                  selected = period[1]),
+                      
+                      radioButtons("group_2", 
+                                   label = "Select X-axis Interval:",
+                                   choices = list("daily" = "day", 
+                                                  "weekly" = "weekday",
+                                                  "monthly" = "month"), 
+                                   selected = "day")
+                    ),
+                    
+                    mainPanel(
+                      width = 9,
+                      fluidRow(
+                        column(width = 12,
+                               h4("Change in Revenue for restaurants and Pubs grouped over chosen time, Ohio \n\n\n"),
+                               plotlyOutput("box",
+                                            height = "500px",
+                                            width = "850px")
+                               
+                        )
+                      )
                     )
+                    
+                    
+           ),
+           tabPanel("Map of Venue visited by Participant",
+                    sidebarPanel(
+                      width = 3,
+                      
+                      selectInput(input = "period_map", 
+                                  label = "Choose Period:",
+                                  choices = c(period),
+                                  multiple = TRUE,
+                                  selected = period[1]),
+                      
+                      selectInput(input = "participant_map", 
+                                  label = "Choose participant:",
+                                  choices = c(participant),
+                                  multiple = TRUE,
+                                  selected = participant[1]),
+                      
+                      
+                    ),
+                    
+                    mainPanel(
+                      width = 9,
+                      fluidRow(
+                        column(width = 12,
+                               h4("Plot of the Restaurants and Pubs visited by each selected Participant for city of Engagement, Ohio \n\n\n"),
+                               h4("Red dots represent restaurants visited by the Participant"),
+                               h4("Yellow dots represent pubs visited by the Participant"),
+                               tmapOutput("map",
+                                          height = "550px",
+                                          width = "700px")
+                               
+                        )
+                      )
+                    )
+                    
+                    
+           ),
+           tabPanel("Sparksline for Revenue",
+                    sidebarPanel(
+                      width = 3,
+                      
+                      radioButtons("venue_sparks", 
+                                   label = "Select the Venue:",
+                                   choices = list("Pub" = "Pub", 
+                                                  "Restaurant" = "Restaurant"), 
+                                   selected = "Pub"
+                      ),
+                      radioButtons("year_sparks", 
+                                   label = "Select the Year:",
+                                   choices = list("2022" = "2022", 
+                                                  "2023" = "2023"), 
+                                   selected = "2022"),    
+                      
+                    ),
+                    
+                    mainPanel(
+                      width = 9,
+                      fluidRow(
+                        column(width = 12,
+                               h4("Statistics for restaurants and Pubs for city of Engagement, Ohio \n\n\n"),
+                               gt_output("sparks")
+                               
+                        )
+                      )
+                    )
+                    
+                    
+           ),
+           tabPanel("ANOVA",
+                    sidebarLayout(
+                      sidebarPanel(width = 3,
+                                   selectInput(input = "period_anova", 
+                                               label = "Choose Period:",
+                                               choices = c(period),
+                                               multiple = TRUE,
+                                               selected = period[1]),
+                                   
+                                   selectInput(input = "venueid_anova", 
+                                               label = "Select Venue (Restaurant/Pub ID):",
+                                               choices = c(venueid),
+                                               multiple = TRUE,
+                                               selected = venueid[1]),
+                                   
+                                   radioButtons("venue_anova", 
+                                                label = "Select the Venue:",
+                                                choices = list("Pub" = "Pub", 
+                                                               "Restaurant" = "Restaurant"), 
+                                                selected = "Pub"
+                                   ),
+                                   
+                                   selectInput(inputId = "yvariable_anova",
+                                               label = "Select y-variable:",
+                                               choices = c("Amount" = "amountSpent",
+                                                           "Time Spent" = "timeSpent",
+                                                           "Travel Time" = "travelTime"),
+                                               selected = "amountSpent"),
+                                   
+                                   selectInput(inputId = "test_anova",
+                                               label = "Type of statistical test:",
+                                               choices = c("parametric" = "p",
+                                                           "nonparametric" = "np",
+                                                           "robust" = "r",
+                                                           "Bayes Factor" = "bf"),
+                                               selected = "p"),
+                                   
+                                   selectInput(inputId = "plotType_anova",
+                                               label = "Type of plot:",
+                                               choices = c("boxviolin" = "boxviolin",
+                                                           "box" = "box",
+                                                           "violin" = "violin"),
+                                               selected = "boxviolin"),
+                                   
+                                   sliderInput(inputId = "outliers_anova",
+                                               label = "Select max value for outliers",
+                                               min = 10,
+                                               max = 1000,
+                                               step = 10,
+                                               value = 100),
+                                   
+                                   textInput(inputId = "plotTitle_anova",
+                                             label = "Plot title",
+                                             placeholder = "Enter text to be used as plot title"),
+                                   
+                                   actionButton(inputId = "goButton", 
+                                                "Go!")
+                      ),
+                      
+                      mainPanel(
+                        width = 9,
+                        fluidRow(
+                          column(width = 12,
+                                 h4("ANOVA analysis for restaurants and Pubs for city of Engagement, Ohio \n\n\n"),
+                                 box(
+                                   plotOutput("boxplot",
+                                              height = "550px",
+                                              width = "700px"))
+                                 
+                          )
+                        )
+                      )
+                    )),
+           tabPanel("Correlation",
+                    sidebarLayout(
+                      sidebarPanel(width = 3,
+                                   selectInput(input = "period_corr", 
+                                               label = "Choose Period:",
+                                               choices = c(period),
+                                               multiple = TRUE,
+                                               selected = period[1]),
+                                   
+                                   selectInput(input = "venueid_corr", 
+                                               label = "Select Venue (Restaurant/Pub ID):",
+                                               choices = c(venueid),
+                                               multiple = TRUE,
+                                               selected = venueid[1]),
+                                   
+                                   selectInput(inputId = "xvariable_corr", 
+                                               label = "Select x-variable:",
+                                               choices = c("amount" = "amountSpent",
+                                                           "Time Spent" = "timeSpent",
+                                                           "Travel Time" = "travelTime"),
+                                               selected = "timeSpent"),
+                                   
+                                   selectInput(inputId = "yvariable_corr",
+                                               label = "Select y-variable:",
+                                               choices = c("amount" = "amountSpent",
+                                                           "Time Spent" = "timeSpent",
+                                                           "Travel Time" = "travelTime"),
+                                               selected = "amountSpent"),
+                                   
+                                   selectInput(inputId = "test_corr",
+                                               label = "Type of statistical test:",
+                                               choices = c("parametric" = "p",
+                                                           "nonparametric" = "np",
+                                                           "robust" = "r",
+                                                           "Bayes Factor" = "bf"),
+                                               selected = "p"),
+                                   
+                                   checkboxInput(inputId = "marginal_corr", 
+                                                 label = "Display marginal graphs", 
+                                                 value = TRUE),
+                                   
+                                   textInput(inputId = "plotTitle_corr",
+                                             label = "Plot title",
+                                             placeholder = "Enter text to be used as plot title"),
+                                   actionButton(inputId = "goButton_corr", 
+                                                "Go!")
+                      ),
+                      mainPanel(
+                        width = 9,
+                        fluidRow(
+                          column(width = 12,
+                                 box(
+                                   plotOutput("corrPlot",
+                                              height = "550px",
+                                              width = "700px"))
+                                 
+                          )
+                        )
+                      )
+                      
+                    ))
   
 ),
   
@@ -241,7 +508,7 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
 
 
 ##### Q3 UI #####
-navbarMenu("Employer",icon = icon("bar-chart-o", verify_fa = FALSE),
+navbarMenu("Employer",icon = icon("bar-chart-o"),
            tabPanel("Employer Health",
                     sidebarPanel(width = 3,
                                  selectInput(inputId = "educationrequired",
@@ -263,7 +530,17 @@ navbarMenu("Employer",icon = icon("bar-chart-o", verify_fa = FALSE),
                                              min = 10,
                                              max = 100)
                     ),
-                    mainPanel(width = 9, fluidRow(column(width = 6,plotOutput("Wagespread", height = "850px")), column(width = 6, tmapOutput("jmap", height = "850px"))))),
+                    mainPanel(width = 9, 
+                              fluidRow(
+                                column(width = 6,
+                                       plotOutput("Wagespread", height = "850px")
+                                       ), 
+                                column(width = 6, 
+                                       tmapOutput("jmap", height = "850px")
+                                       )
+                                )
+                              )
+                    ),
            tabPanel("Employment Patterns",
                     sidebarPanel(width = 3,
                                  selectInput(inputId = "categoryj",
@@ -300,7 +577,9 @@ navbarMenu("Employer",icon = icon("bar-chart-o", verify_fa = FALSE),
                                                label = "Display marginal graphs", 
                                                value = TRUE)
                     ),
-                    mainPanel(width = 9, plotOutput("employmentpattern", height = "600px"))
+                    mainPanel(width = 9, 
+                              plotOutput("employmentpattern", height = "600px")
+                              )
            ),
            tabPanel("Turnover",
                     sidebarPanel(width = 3,
@@ -329,13 +608,23 @@ navbarMenu("Employer",icon = icon("bar-chart-o", verify_fa = FALSE),
                                              min = 10,
                                              max = 20)
                     ),
-                    mainPanel(width = 9, plotOutput("turnover", height = "180px"), fluidRow(column(width = 6, tmapOutput("turnovermap", height = "700px")), column(width = 6, tmapOutput("turnovermap2", height = "700px"))))
+                    mainPanel(width = 9, 
+                              plotOutput("turnover", height = "180px"), 
+                              fluidRow(
+                                column(width = 6, 
+                                       tmapOutput("turnovermap", height = "700px")
+                                       ), 
+                                column(width = 6, 
+                                       tmapOutput("turnovermap2", height = "700px")
+                                       )
+                                )
+                              )
            )
-           )
+          )
 
 
 
-
+)
 ##### End of Q3 UI #####
 )
 ##############################
@@ -346,10 +635,9 @@ server <- function(input, output) {
 
   ##### Q1 Server #####
   
-  
-  output$revenue <- renderPlot({
-
-    p <- group %>%
+  ## Revenue
+  output$revenue <- renderPlotly({
+      p <- group %>%
       filter(monthYear == input$period, venue == input$venue ) %>%
       group_by(!!!rlang::syms(input$group), travelEndLocationId) %>%
       summarise(amountSpent = (sum(amountSpent))) %>%
@@ -357,12 +645,145 @@ server <- function(input, output) {
       geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
       labs(
         y= 'Revenue (Thousands$)',
-        title = "Revenue Pubs - 2022",
+        x= print(input$group),
+        title = print(input$venue),
         caption = "Ohio USA"
-      ) 
-    p
+      ) +
+      theme_minimal()+
+      theme(axis.ticks.x= element_blank(),
+            panel.background= element_blank(), 
+            legend.background = element_blank(),
+            plot.title = element_text(size=12, face="bold",hjust = 0.5),
+            plot.subtitle = element_text(hjust = 1),
+            plot.caption = element_text(hjust = 0),
+            axis.title.y= element_text(angle=0))
+    
+    ggplotly(p, tooltip = c("text"))
+    
   })
   
+  ## boxplots
+  output$box <- renderPlotly({
+    
+    boxplot <- group %>%
+      filter(monthYear == input$period_2, venue == input$venue_2 ) %>%
+      group_by(!!!rlang::syms(input$group_2), travelEndLocationId ) %>%
+      summarise(amountSpent = (sum(amountSpent))) %>%
+      ggplot(aes_string(x=input$group_2, y="amountSpent", group="travelEndLocationId", color =input$group_2)) + 
+      geom_boxplot() +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 60),
+            axis.title.x = element_blank())
+    
+    ggplotly(boxplot)
+    
+  })
+  
+  ##Sparksline
+  output$sparks <- render_gt({
+    report <- group_spars %>%
+      filter(year == input$year_sparks, venue == input$venue_sparks) %>%
+      group_by(Venue, monthYear) %>%
+      summarise(amountSpent = sum(amountSpent)) %>%
+      ungroup()
+    
+    spark <- report %>%
+      group_by(Venue) %>%
+      summarize('Monthly Revenue' = list(amountSpent), 
+                .groups = "drop")
+    
+    revenue <- report %>% 
+      group_by(Venue) %>% 
+      summarise("Min" = min(amountSpent, na.rm = T),
+                "Max" = max(amountSpent, na.rm = T),
+                "Average" = mean(amountSpent, na.rm = T)
+      )
+    revenue_data = left_join(revenue, spark)
+    revenue_data %>%
+      gt() %>%
+      gt_plt_sparkline('Monthly Revenue')
+    
+    
+  })
+  
+  ## Map
+  output$map <- renderTmap({
+    
+    group_filt_loc <- group_loc %>%
+      filter(participantId == input$participant_map, monthYear == input$period_map)
+    
+    restaurants <- unique(na.omit(group_filt_loc$travelEndLocationId))
+    
+    restaurants_modified<- restaurants_loc %>%
+      filter(restaurantId %in% c(restaurants))
+    
+    pubs <- unique(na.omit(group_filt_loc$travelEndLocationId))
+    
+    pubs_modified<- pubs_loc %>%
+      filter(pubId %in% c(pubs))
+    
+    tm_shape(buildings)+
+      tm_polygons(col = "grey60",
+                  size = 1,
+                  border.col = "black",
+                  border.lwd = 1) +
+      tm_shape(restaurants_modified)+
+      tm_dots(col = "red")+
+      tm_shape(pubs_modified)+
+      tm_dots(col = "yellow")
+    
+  })
+  
+  ##  ANOVA
+  
+  output$boxplot <- renderPlot({
+    input$goButton
+    set.seed(1234)
+    
+    p <- group %>%
+      filter(monthYear == input$period_anova, venue == input$venue_anova)%>%
+      filter(travelEndLocationId == input$venueid_anova, amountSpent <= input$outliers_anova)
+    
+    ggbetweenstats(
+      data = p,
+      x = travelEndLocationId, 
+      y = !!input$yvariable_anova,
+      type = input$test_anova,
+      title = isolate({
+        toTitleCase(input$plotTitle_anova)
+      }),
+      plot.type = input$plotType_anova,
+      mean.ci = TRUE, 
+      pairwise.comparisons = TRUE, 
+      pairwise.display = "s",
+      p.adjust.method = "fdr",
+      messages = FALSE)
+    #scale_y_continuous(breaks = seq(0, !!input$scaley, by = !!input$scalediff), limits = c(0, !!input$scaley))
+    #scale_y_continuous(breaks = seq(0, 100, by = 20), limits = c(0, 100))
+  })
+  
+  ##Correlation Analysis
+  output$corrPlot <- renderPlot({
+    input$goButton1
+    set.seed(1234)
+    corr<-group %>%
+      filter(monthYear == input$period_corr) %>%
+      filter(travelEndLocationId == input$venueid_corr)
+    
+    ggscatterstats(
+      data = corr,
+      x = !!input$xvariable_corr, 
+      y = !!input$yvariable_corr,
+      marginal = input$marginal_corr,
+      title = isolate({
+        toTitleCase(input$plotTitle_corr)
+      }),
+      conf.level = 0.95,
+      bf.prior = 0.707)+
+      scale_y_continuous(breaks = seq(0, 100, by = 20), limits = c(0, 100))
+  })
+  
+ 
   ##### End of Q1 Server #####
   
   
@@ -401,13 +822,12 @@ server <- function(input, output) {
       ylab("Percentage") +
       ggtitle("Income and Expense") +
       theme(axis.title.y=element_text(angle =0),
-            axis.title.x=element_text(margin = margin(t=-10)),
             panel.grid.minor.y = element_blank(),
             panel.grid.minor.x = element_line(colour = "grey90"),
             panel.grid.major.x = element_line(colour = "grey90"),
             panel.grid.major.y = element_line(colour = "grey90"),
             panel.background = element_rect(fill = "white"),
-            axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+            axis.text.x = element_text(size =16, angle = 0),
             axis.text.y = element_text(size =16),
             axis.line = element_line(color="grey25", size = 0.02),
             axis.title = element_text(size=16),
@@ -436,13 +856,12 @@ server <- function(input, output) {
       ylab("Income")+
       xlab("Month, Year")+
       theme(axis.title.y=element_text(angle =0),
-            axis.title.x=element_text(margin = margin(t=-10)),
             panel.grid.minor.y = element_blank(),
             panel.grid.minor.x = element_line(colour = "grey90"),
             panel.grid.major.x = element_line(colour = "grey90"),
             panel.grid.major.y = element_line(colour = "grey90"),
             panel.background = element_rect(fill = "white"),
-            axis.text.x = element_text(size =16, angle = 45, margin = margin(t = 30)),
+            axis.text.x = element_text(size =16, angle = 0),
             axis.text.y = element_text(size =16),
             axis.line = element_line(color="grey25", size = 0.02),
             axis.title = element_text(size=16),
@@ -455,10 +874,8 @@ server <- function(input, output) {
     
     req(input$edulevel)
     req(input$agelevel)
-
     
-    if(input$edulevel == 'All' && input$agelevel == 'All')
-    {
+    if(input$edulevel == 'All' && input$agelevel == 'All'){
       dataset_4
     }
     else if(input$edulevel == 'All' && input$agelevel != 'All'){
@@ -495,13 +912,11 @@ server <- function(input, output) {
                           labels = comma)+
       labs(x = NULL, 
            y = NULL) +
-      theme(axis.text = element_text(size = 10,margin = margin(r = -60)),
+      theme(axis.text = element_text(size = 10),
             axis.ticks= element_blank(),
             axis.text.y = element_blank(),
             legend.title = element_text(size =16),
             legend.text = element_text(size = 16),
-            legend.box.margin = margin(20,20,20,20),
-            legend.margin = margin(20,20,20,20),
             strip.text.x = element_text(size = 14),
             plot.title = element_text(size = 20, hjust = 0.5))+
       ggtitle("Average Daily Expense of Residents")
@@ -551,7 +966,6 @@ server <- function(input, output) {
   output$plot4 <- renderPlot({
     
     data_for_plot4 <- plot4_data()
-
     
     predictionModel <- req(input$predmodel)
     
@@ -592,7 +1006,6 @@ server <- function(input, output) {
   output$selection <- DT::renderDataTable({
     
     data_for_plot4 <- plot4_data()
-
     
     
     if (input$predmodel == "ARIMA"){
@@ -609,7 +1022,6 @@ server <- function(input, output) {
         model(ETS(income))
       
       accuracy(fit1)
-      
       
     }
     else if (input$predmodel == "TSLM"){
