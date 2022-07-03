@@ -1,5 +1,6 @@
-packages <- c('shiny','tidyverse','lubridate','zoo','ggthemes','hrbrthemes','ggdist','gghalves',
-              'ggridges','patchwork','zoo', 'ggrepel','ggiraph','gganimate','scales')
+packages <- c('shiny','tidyverse','lubridate','zoo','ggthemes','hrbrthemes','ggdist','gghalves','timetk','tidyquant',
+              'ggridges','patchwork','zoo', 'ggrepel','ggiraph','gganimate','scales','tsibble','forecast','fpp3','tseries',
+              'shinyWidgets','plotly','DT','bslib')
 
 for (p in packages){
   library(p, character.only=T)
@@ -85,18 +86,21 @@ tabPanel("Prediction",
                       ),                      
                       radioButtons("predperiod",
                                    label = "Select Forecast Period:",
-                                   choices = c("6 months" ,
-                                               "12 months" ,
-                                               "18 months" )
+                                   choices = list("6 months" = "6 months",
+                                               "12 months" = "12 months",
+                                               "18 months" = "18 months"),
+                                   selected = "6 months"
                       ),
                       radioButtons("predmodel", 
                                    label = "Select Model:",
-                                   choices = c("ARIMA","ETS", "TSLM", "AR")
+                                   choices = c("ARIMA","ETS", "TSLM")
                       )
          ),
          mainPanel(width = 9,
-                   plotOutput("plot4",
-                              height = "500px")
+                   plotOutput("plot4"),
+                   dataTableOutput("selection"),
+                   h5("Diagnostics"),
+                   plotOutput("residuals")
          )
          
 )
@@ -271,15 +275,17 @@ server <- function(input, output){
     
     forecast_data <- dataset_5 %>%
       mutate(Time = yearmonth(timestamp))%>%
+      filter(Time < yearmonth("2023 May")) %>%
       group_by(Time,participantId) %>%
-      summarise(income = sum(ifelse(amount > 0,amount,0)), expense = sum(ifelse(amount <= 0,amount,0))) %>%
+      summarise(income = sum(ifelse(amount > 0,amount,0))) %>%
       ungroup() %>%
       group_by(Time) %>%
-      summarise(income = mean(income),expense = mean(expense))
+      summarise(income = mean(income))%>%
+      ungroup()
     
-    forecast_data <- as_tsibble(forecast_data, index = Time)
-    
-    return(forecast_data)
+    forecast_data_1 <- as_tsibble(forecast_data, index = Time)
+    View(forecast_data_1)
+    return(forecast_data_1)
     
     })
   
@@ -309,7 +315,7 @@ server <- function(input, output){
     else if(predictionModel =="TSLM")
     {
       data_for_plot4%>%
-        model(TSLM(income)) %>%
+        model(TSLM(income~trend())) %>%
         forecast(h = input$predperiod) %>%
         autoplot(data_for_plot4) +
         theme_light()
@@ -321,6 +327,80 @@ server <- function(input, output){
         forecast(h = input$predperiod) %>%
         autoplot(data_for_plot4) +
         theme_light()
+    }
+  })
+  
+  output$selection <- DT::renderDataTable({
+    
+    data_for_plot4 <- plot4_data()
+    print(input$predmodel)
+    
+    
+    if (input$predmodel == "ARIMA"){
+      
+      fit1 <- data_for_plot4 %>%
+        model(ARIMA(income))
+      
+    accuracy(fit1)
+
+    }
+    else if (input$predmodel == "ETS"){
+      
+      fit1 <- data_for_plot4 %>%
+        model(ETS(income))
+      
+accuracy(fit1)
+      
+
+    }
+    else if (input$predmodel == "TSLM"){
+      
+      fit1 <- data_for_plot4 %>%
+        model(TSLM(income~trend()))
+      
+accuracy(fit1)
+      
+    }
+    else if (input$predmodel == "AR"){
+      
+      fit1 <- data_for_plot4 %>%
+        model(AR(income))
+      
+accuracy(fit1)
+      
+    }
+  })
+  
+  output$residuals <- renderPlot({
+    data_for_plot4 <- plot4_data()
+    print(input$predmodel)
+    if (input$predmodel == "ARIMA"){
+      
+      data_for_plot4 %>%
+        model(ARIMA(income)) %>%
+        gg_tsresiduals() +
+        labs(title = "Diagnostics")
+    }
+    
+    else if (input$predmodel == "ETS"){
+      data_for_plot4 %>%
+        model(ETS(income)) %>%
+        gg_tsresiduals() +
+        labs(title = "Diagnostics")
+    }
+    
+    else if (input$predmodel == "TSLM"){
+      data_for_plot4 %>%
+        model(TSLM(income ~trend())) %>%
+        gg_tsresiduals() +
+        labs(title = "Diagnostics")
+    }
+    
+    else if (input$predmodel == "AR"){
+      data_for_plot4 %>%
+        model(AR(income)) %>%
+        gg_tsresiduals() +
+        labs(title = "Diagnostics")
     }
   })
 }
