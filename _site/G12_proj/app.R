@@ -6,7 +6,7 @@
 pacman::p_load(shiny,tidyverse,lubridate,zoo,ggthemes,hrbrthemes,ggdist,gghalves,
               ggridges,patchwork,zoo, ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
               tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf, leaflet,
-              rstantools, reactable, reactablefmtr,gt, gtExtras)
+              rstantools, reactable, reactablefmtr,gt, gtExtras, fpp3,DT)
 
 
 
@@ -28,7 +28,7 @@ buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=locati
 data_travel= travel_filt %>%
   mutate(weekday = weekdays(checkInTime),
          day = day(checkInTime),
-         month=as.character(checkInTime,"%b %y"),
+         month=as.character(checkInTime,"%m %y"),
          year = year(checkInTime),
          monthYear = as.yearmon(checkInTime),
          travelEndLocationId=as.character(travelEndLocationId),
@@ -49,7 +49,9 @@ group_restaurant<-merge(x=data_travel, y=restaurants, by.x = 'travelEndLocationI
 group_restaurant$venue <- "Restaurant"
 group_restaurant$hourlyCost <- 0.00
 
-group <-rbind(group_pub, group_restaurant)
+group_bind <-rbind(group_pub, group_restaurant)
+
+group <- group_bind[order(group_bind$monthYear), ]
 
 period <- unique(na.omit(group$monthYear))
 
@@ -58,6 +60,7 @@ participant <- unique(na.omit(group$participantId))
 venueid_pub <- unique(na.omit(group_pub$travelEndLocationId))
 venueid_rest <- unique(na.omit(group_restaurant$travelEndLocationId))
 venueid <- unique(na.omit(group$travelEndLocationId))
+
 
 group_pub_loc <-merge(x=data_travel, y=pubs_loc, by.x = "travelEndLocationId", by.y = "pubId")
 group_pub_loc$venue <- "Pub"
@@ -75,7 +78,7 @@ dataset_1 <- read_rds("data/rds/dataset_1.rds")
 dataset_2 <- read_rds("data/rds/dataset_2.rds")
 dataset_3 <- read_rds("data/rds/dataset_3.rds")
 dataset_4 <- read_rds("data/rds/dataset_4.rds")
-
+agegroup_list <- unique(dataset_1$agegroup)
 edutitle <- c("All",as.character(unique(dataset_1$educationLevel)))
 educode <- c("All",as.character(unique(dataset_1$educationLevel)))
 names(educode) <- edutitle
@@ -290,18 +293,18 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                                multiple = TRUE,
                                                selected = period[1]),
                                    
-                                   selectInput(input = "venueid_anova", 
-                                               label = "Select Venue (Restaurant/Pub ID):",
-                                               choices = c(venueid),
-                                               multiple = TRUE,
-                                               selected = venueid[1]),
-                                   
                                    radioButtons("venue_anova", 
                                                 label = "Select the Venue:",
                                                 choices = list("Pub" = "Pub", 
                                                                "Restaurant" = "Restaurant"), 
                                                 selected = "Pub"
                                    ),
+                                   
+                                   selectInput(input = "venueid_anova", 
+                                               label = "Select Venue (Restaurant/Pub ID):",
+                                               choices = c(venueid),
+                                               multiple = TRUE,
+                                               selected = venueid[1]),
                                    
                                    selectInput(inputId = "yvariable_anova",
                                                label = "Select y-variable:",
@@ -441,9 +444,11 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
                     )
            ),
            tabPanel("Finance Variation ",
+                    
                     mainPanel(width = 9,
                               plotOutput("plot2",
-                                         height = "500px")
+                                         height = "500px",
+                                         width = "1150px")
                     )
                     
            ),
@@ -642,6 +647,7 @@ server <- function(input, output) {
       group_by(!!!rlang::syms(input$group), travelEndLocationId) %>%
       summarise(amountSpent = (sum(amountSpent))) %>%
       ggplot(aes_string(x=input$group, y="amountSpent", group="travelEndLocationId")) +
+        
       geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
       labs(
         y= 'Revenue (Thousands$)',
@@ -673,7 +679,13 @@ server <- function(input, output) {
       geom_boxplot() +
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 60),
-            axis.title.x = element_blank())
+            axis.title.x = element_blank())+
+      labs(
+        y= 'Revenue (Thousands$)',
+        x= print(input$group_2),
+        title = print(input$venue),
+        caption = "Ohio USA"
+      ) 
     
     ggplotly(boxplot)
     
@@ -847,7 +859,7 @@ server <- function(input, output) {
   
   
   output$plot2 <- renderPlot({
-    
+
     dataset_3 %>%
       ggplot(aes(x=YearMon, y = amount, group = revenue))+
       geom_line(aes(color = revenue), size = 1)+
@@ -868,6 +880,7 @@ server <- function(input, output) {
             legend.position = "none",
             plot.title = element_text(size =20,hjust = 0.5))+
       ggtitle("Average Income by Education Level")
+    
   })
   
   plot3_data <- reactive({
