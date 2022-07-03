@@ -28,7 +28,7 @@ buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=locati
 data_travel= travel_filt %>%
   mutate(weekday = weekdays(checkInTime),
          day = day(checkInTime),
-         month=as.character(checkInTime,"%b %y"),
+         month=as.character(checkInTime,"%m %y"),
          year = year(checkInTime),
          monthYear = as.yearmon(checkInTime),
          travelEndLocationId=as.character(travelEndLocationId),
@@ -49,7 +49,9 @@ group_restaurant<-merge(x=data_travel, y=restaurants, by.x = 'travelEndLocationI
 group_restaurant$venue <- "Restaurant"
 group_restaurant$hourlyCost <- 0.00
 
-group <-rbind(group_pub, group_restaurant)
+group_bind <-rbind(group_pub, group_restaurant)
+
+group <- group_bind[order(group_bind$monthYear), ]
 
 period <- unique(na.omit(group$monthYear))
 
@@ -645,6 +647,7 @@ server <- function(input, output) {
       group_by(!!!rlang::syms(input$group), travelEndLocationId) %>%
       summarise(amountSpent = (sum(amountSpent))) %>%
       ggplot(aes_string(x=input$group, y="amountSpent", group="travelEndLocationId")) +
+        
       geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
       labs(
         y= 'Revenue (Thousands$)',
