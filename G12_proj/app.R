@@ -3,9 +3,9 @@
 ##############################
 
 
-pacman::p_load(shiny,tidyverse,lubridate,zoo,ggthemes,hrbrthemes,ggdist,gghalves,
-              ggridges,patchwork,zoo, ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
-              tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf, leaflet,
+pacman::p_load(shiny,tidyverse,lubridate,ggthemes,hrbrthemes,ggdist,gghalves,
+              ggridges,zoo,ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
+              tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf,
               rstantools, reactable, reactablefmtr,gt, gtExtras, fpp3,DT)
 
 
@@ -91,8 +91,6 @@ names(agecode) <- agetitle
 ##### Q3 #####
 
 jobs <- read_rds("data/rds/jobs.rds")
-jbuildings <- read_sf("data/jBuildings.csv",
-                      options = "GEOM_POSSIBLE_NAMES=location")
 
 jjobs <- read_sf("data/jjobs.csv",
                  options = "GEOM_POSSIBLE_NAMES=location")
@@ -1173,7 +1171,7 @@ server <- function(input, output) {
   })
   
   output$jmap <- renderTmap({
-    j3<-tm_shape(jbuildings)+
+    j3<-tm_shape(buildings)+
       tm_polygons(col = "lightgrey",
                   size = 1,
                   border.col = "black",
@@ -1346,7 +1344,7 @@ server <- function(input, output) {
   })
   
   output$turnovermap <- renderTmap({
-    j9<-tm_shape(jbuildings)+
+    j9<-tm_shape(buildings)+
       tm_polygons(col = "lightgrey",
                   size = 1,
                   border.col = "black",
@@ -1366,7 +1364,7 @@ server <- function(input, output) {
     
   })
   output$turnovermap2 <- renderTmap({
-    j10<-tm_shape(jbuildings)+
+    j10<-tm_shape(buildings)+
       tm_polygons(col = "lightgrey",
                   size = 1,
                   border.col = "black",
