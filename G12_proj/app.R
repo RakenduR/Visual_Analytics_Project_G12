@@ -16,66 +16,26 @@ pacman::p_load(shiny,tidyverse,lubridate,ggthemes,hrbrthemes,ggdist,gghalves,
 
 ##### Q1 #####
 
-travel_filt <- read_rds('data/rds/travel_filt.rds')
-restaurants <- read_csv("data/Restaurants.csv")
-pubs <- read_csv("data/Pubs.csv")
-
-
 pubs_loc <- read_sf("data/Pubs.csv", options = "GEOM_POSSIBLE_NAMES=location")
 restaurants_loc <- read_sf("data/Restaurants.csv", options = "GEOM_POSSIBLE_NAMES=location")
 buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=location")
 
-data_travel= travel_filt %>%
-  mutate(weekday = weekdays(checkInTime),
-         day = day(checkInTime),
-         month=as.character(checkInTime,"%m %y"),
-         year = year(checkInTime),
-         monthYear = as.yearmon(checkInTime),
-         travelEndLocationId=as.character(travelEndLocationId),
-         timeSpent = checkOutTime - checkInTime,
-         travelTime = travelEndTime- travelStartTime,
-         participantId=as.character(participantId),
-         purpose=as.character(purpose))
-data_travel$timeSpent <- as.numeric(as.character(data_travel$timeSpent))
-data_travel$travelTime <- as.numeric(as.character(data_travel$travelTime))
+group <- read_rds("data/rds/group.rds")
+group_loc <- read_rds("data/rds/group_loc.rds")
 
-data_travel <- data_travel[,c("participantId","travelStartLocationId", "travelEndLocationId", "purpose",  "amountSpent","timeSpent","travelTime","weekday","day","month","year","monthYear")]
-
-group_pub <-merge(x=data_travel, y=pubs, by.x = "travelEndLocationId", by.y = "pubId")
-group_pub$venue <- "Pub"
-group_pub$foodCost <- 0.00
-
-group_restaurant<-merge(x=data_travel, y=restaurants, by.x = 'travelEndLocationId', by.y =  'restaurantId')
-group_restaurant$venue <- "Restaurant"
-group_restaurant$hourlyCost <- 0.00
-
-group_bind <-rbind(group_pub, group_restaurant)
-
-group <- group_bind[order(group_bind$monthYear), ]
-
-period <- unique(na.omit(group$monthYear))
+venueid_pub <- read_rds("data/rds/venueid_pub.rds")
+venueid_rest <- read_rds("data/rds/venueid_rest.rds")
+period <- read_rds("data/rds/period.rds")
 
 participant <- unique(na.omit(group$participantId))
 
-venueid_pub <- unique(na.omit(group_pub$travelEndLocationId))
-venueid_rest <- unique(na.omit(group_restaurant$travelEndLocationId))
 venueid <- unique(na.omit(group$travelEndLocationId))
-
-
-group_pub_loc <-merge(x=data_travel, y=pubs_loc, by.x = "travelEndLocationId", by.y = "pubId")
-group_pub_loc$venue <- "Pub"
-group_pub_loc$foodCost <- 0.00
-group_restaurant_loc<-merge(x=data_travel, y=restaurants_loc, by.x = 'travelEndLocationId', by.y =  'restaurantId')
-group_restaurant_loc$venue <- "Restaurant"
-group_restaurant_loc$hourlyCost <- 0.00
-group_loc <-rbind(group_pub_loc, group_restaurant_loc)
 
 group_spars <- group
 group_spars$Venue <- group_spars$travelEndLocationId
 
 ##### Q2 #####
 dataset_1 <- read_rds("data/rds/dataset_1.rds")
-dataset_2 <- read_rds("data/rds/dataset_2.rds")
 dataset_3 <- read_rds("data/rds/dataset_3.rds")
 dataset_4 <- read_rds("data/rds/dataset_4.rds")
 agegroup_list <- unique(dataset_1$agegroup)
@@ -112,27 +72,51 @@ ui <- fluidPage(
   theme=shinytheme("united"),
   id = "navbarID",
   tabPanel(title = "Overview",icon = icon("globe"),
-           mainPanel(
-             ##### Introduction #####
-             h1("Once upon a time.."),
-             p("Engagement was a small town in Ohio. Not anymore. It is now buzzling with activity and experiencing an economic growth spurt.
+           tags$head(
+             tags$style(
+               "
+            .title 
+            {
+                background:url('img.jpg');
+                background-repeat: repeat;
+                opacity:1;
+                height: 100px;
+
+            }
+            "
+             )
+           ),
+           
+headerPanel(h1(class = "title")),
+           mainPanel(width = 12,
+                     fluidRow(
+                       column(width = 10,
+                              ##### Introduction #####
+                              h1("Once upon a time.."),
+                              p("Engagement was a small town in Ohio. Not anymore. It is now buzzling with activity and experiencing an economic growth spurt.
                 To keep up with the sudden emergence of businesses and increase in number of occupants, it is important that infrastructure
                 undergoes rapid but planned development. To enable such a well planned development, let us explore, analyse and predict the 
                 economic criteria of Engagement."),
-             h3("Lets begin our Journey through the streets of Engagement.."),
-             h4("Directions:"),
-             p("Under the *Business* tab, you will find a detailed study of the businesses in Engagement.We will analyse how these businesses are performing"),
-             p("Under the Finance tab, we will study the income and expenditure of the residents.We will compare the Financial situation of various groups
+                              h3("Lets begin our Journey through the streets of Engagement.."),
+                              h4("Directions:"),
+                              p("Under the Business tab, you will find a detailed study of the businesses in Engagement.We will analyse how these businesses are performing"),
+                              p("Under the Finance tab, we will study the income and expenditure of the residents.We will compare the Financial situation of various groups
                of residents having different Educational Qualifications and from different age groups.We will also analyse the spending patterns of the 
                residents to understand what are the infrastructure and amenities that needs to be developed.We will also predict the growth in income of the 
                residents which will in turn help to understand their spending capacity."),
-             p("Under the Employers tab, we will study the employement patterns by the various establishments in Ohio and their location. We will also 
+                              p("Under the Employers tab, we will study the employement patterns by the various establishments in Ohio and their location. We will also 
                study the employment patterns over different groups of residents with different Education Levels and belonging to different age groups.We 
-               will also study the job opportunities in Engagement to understand the jobs with high turnover.")
-           )
+               will also study the job opportunities in Engagement to understand the jobs with high turnover."),
+                              h4("For detailed steps, please download our Userguide by clicking on the button in the top right corner")
+                       ),
+                       column(width = 2,
+                                         downloadButton("downloadData", "Userguide")
+                           )
+                         )
+                       )
   ),
   ##### Q1 UI #####
-navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
+navbarMenu("Business",icon = icon("dollar-sign"),
            tabPanel("Change in revenue",
                     sidebarPanel(
                       width = 3,
@@ -150,7 +134,6 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                   choices = c(period),
                                   multiple = TRUE,
                                   selected = period[1]),
-                      
                       radioButtons("group", 
                                    label = "Select X-axis Interval:",
                                    choices = list("daily" = "day", 
@@ -166,7 +149,7 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                h4("Change in Revenue for restaurants and Pubs for city of Engagement, Ohio \n\n\n"),
                                plotlyOutput("revenue", 
                                             height = "500px",
-                                            width = "850px"),
+                                            width = "850px")
                                
                         )
                       )
@@ -229,8 +212,7 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                   label = "Choose participant:",
                                   choices = c(participant),
                                   multiple = TRUE,
-                                  selected = participant[1]),
-                      
+                                  selected = participant[1])
                       
                     ),
                     
@@ -244,11 +226,9 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                tmapOutput("map",
                                           height = "550px",
                                           width = "700px")
-                               
                         )
                       )
                     )
-                    
                     
            ),
            tabPanel("Sparksline for Revenue",
@@ -265,7 +245,7 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                                    label = "Select the Year:",
                                    choices = list("2022" = "2022", 
                                                   "2023" = "2023"), 
-                                   selected = "2022"),    
+                                   selected = "2022")
                       
                     ),
                     
@@ -283,7 +263,7 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                     
            ),
            tabPanel("ANOVA",
-                    sidebarLayout(
+
                       sidebarPanel(width = 3,
                                    selectInput(input = "period_anova", 
                                                label = "Choose Period:",
@@ -354,9 +334,9 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                           )
                         )
                       )
-                    )),
+            ),
            tabPanel("Correlation",
-                    sidebarLayout(
+
                       sidebarPanel(width = 3,
                                    selectInput(input = "period_corr", 
                                                label = "Choose Period:",
@@ -415,25 +395,34 @@ navbarMenu("Business",icon = icon("dollar-sign",lib = "font-awesome"),
                         )
                       )
                       
-                    ))
+                    )
   
 ),
   
   ##### End of Q1 UI #####
   
   ##### Q2 UI #####
-navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
+navbarMenu("Finance",icon = icon("chart-line"),
            tabPanel("Income and Expense",
                     sidebarPanel(width =3,
                                  selectInput("eduselect",
                                              "Select Education Level",
-                                             unique(dataset_1$educationLevel)
+                                             choices = c("Bachelors" = "Bachelors",
+                                                         "Graduate" = "Graduate",
+                                                         "High School or College" = "HighSchoolOrCollege",
+                                                         "Low" = "Low"),
+                                             selected = "Bachelors"
                                  ),
                                  selectInput("ageselect",
                                              "Select Age Group",
-                                             unique(dataset_1$agegroup)
-                                 )
-                    ),
+                                             choices = c(
+                                                          "18-30" = "18-30",
+                                                           "30-40" = "30-40",
+                                                           "40-50" = "40-50",
+                                                           "50-60" = "50-60"),
+                                             selected = "18-30")
+                                 ),
+                    
                     mainPanel(width = 9,
                               plotOutput("plot1",
                                          height = "500px")
@@ -442,11 +431,29 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
                     )
            ),
            tabPanel("Finance Variation ",
-                    
-                    mainPanel(width = 9,
-                              plotOutput("plot2",
-                                         height = "500px",
-                                         width = "1150px")
+                    mainPanel(width = 12,
+                              fluidRow(
+                                column(width = 2),
+                                column(width = 8,
+                                            plotlyOutput("plot2",
+                                                         height = "500px",
+                                                         width = "1300px"),
+                                       h2("Click on a plot to enlarge")
+
+                                ),
+                                column(width = 2)
+                                ),
+                              fluidRow(
+                                column(width = 3),
+
+                                column(width = 6,
+                                         plotOutput("plot2a",
+                                                      height = "500px",
+                                                      width = "600px")
+
+                                ),
+                                column(width = 3)
+                              )
                     )
                     
            ),
@@ -455,12 +462,20 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
                     sidebarPanel(width =3,
                                  radioButtons("edulevel", 
                                               label = "Select Education Level:",
-                                              choices = educode, 
+                                              choices = c("All" = "All",
+                                                          "Bachelors" = "Bachelors",
+                                                          "Graduate" = "Graduate",
+                                                          "High School or College" = "HighSchoolOrCollege",
+                                                          "Low" = "Low"), 
                                               selected = "All"
                                  ),
                                  radioButtons("agelevel", 
                                               label = "Select Age Group:",
-                                              choices = agecode, 
+                                              choices = c("All" = "All",
+                                                          "18-30" = "18-30",
+                                                          "30-40" = "30-40",
+                                                          "40-50" = "40-50",
+                                                          "50-60" = "50-60"), 
                                               selected = "All"
                                  )
                     ),
@@ -469,49 +484,16 @@ navbarMenu("Finance",icon = icon("search-dollar",lib = "font-awesome"),
                                          height = "500px")
                     )
                     
-           ),
-           tabPanel("Prediction",
-                    h4("Prediction of Income of Residents of Engagement, Ohio"),
-                    sidebarPanel(width =3,
-                                 radioButtons("prededulevel", 
-                                              label = "Select Education Level:",
-                                              choices = educode, 
-                                              selected = "All"
-                                 ),
-                                 radioButtons("predagelevel", 
-                                              label = "Select Age Group:",
-                                              choices = agecode, 
-                                              selected = "All"
-                                 ),                      
-                                 radioButtons("predperiod",
-                                              label = "Select Forecast Period:",
-                                              choices = list("6 months" = "6 months",
-                                                             "12 months" = "12 months",
-                                                             "18 months" = "18 months"),
-                                              selected = "6 months"
-                                 ),
-                                 radioButtons("predmodel", 
-                                              label = "Select Model:",
-                                              choices = c("ARIMA","ETS", "TSLM")
-                                 )
-                    ),
-                    mainPanel(width = 9,
-                              h4("Prediction of Income by Education Level and Age group"),
-                              plotOutput("plot4"),
-                              dataTableOutput("selection"),
-                              h5("Diagnostics"),
-                              plotOutput("residuals")
-                    )
-                    
+           
            )
-           ),
+),
 
 
 ##### End of Q2 UI #####
 
 
 ##### Q3 UI #####
-navbarMenu("Employer",icon = icon("bar-chart-o"),
+navbarMenu("Employer",icon = icon("chart-bar"),
            tabPanel("Employer Health",
                     sidebarPanel(width = 3,
                                  selectInput(inputId = "educationrequired",
@@ -635,6 +617,12 @@ navbarMenu("Employer",icon = icon("bar-chart-o"),
 ##############################
 server <- function(input, output) {
 
+  output$downloadData <- downloadHandler(
+    filename = "Userguide.pdf",
+    content = function(file) {
+      file.copy("www/Userguide.pdf", file)
+    }
+  )
 
   ##### Q1 Server #####
   
@@ -797,9 +785,6 @@ server <- function(input, output) {
   ##### End of Q1 Server #####
   
   
-  
-  
-  
   ##### Q2 Server #####
   
   
@@ -847,39 +832,77 @@ server <- function(input, output) {
       scale_fill_discrete(name = "Category")
     
   })
-  
-  
-  plot2_data <- reactive({
-    
-    
-    
-  })
-  
-  
-  output$plot2 <- renderPlot({
 
-    dataset_3 %>%
-      ggplot(aes(x=YearMon, y = amount, group = revenue))+
+  
+  output$plot2 <- renderPlotly({
+
+    p <- dataset_3 %>%
+      mutate(col_001 = paste(educationLevel, agegroup, sep=",")) %>%
+      ggplot(aes(x=YearMon, y = amount, group = revenue, key =col_001))+
       geom_line(aes(color = revenue), size = 1)+
-      geom_text(aes(label = Label),nudge_x = 0.15, size = 4) +
+      geom_text(aes(label = Label),nudge_x = 0.1, size = 3) +
       facet_grid(educationLevel ~ agegroup)+
       ylab("Income")+
       xlab("Month, Year")+
-      theme(axis.title.y=element_text(angle =0),
+      theme(
             panel.grid.minor.y = element_blank(),
             panel.grid.minor.x = element_line(colour = "grey90"),
             panel.grid.major.x = element_line(colour = "grey90"),
             panel.grid.major.y = element_line(colour = "grey90"),
             panel.background = element_rect(fill = "white"),
-            axis.text.x = element_text(size =16, angle = 0),
-            axis.text.y = element_text(size =16),
+            axis.text.x = element_text(size =8, angle = 60, margin = c(-10,0,0,0)),
+            axis.text.y = element_text(size =8),
             axis.line = element_line(color="grey25", size = 0.02),
-            axis.title = element_text(size=16),
+            axis.title.x = element_text(size=10, margin = c(20,0,0,0)),
+            axis.title.y = element_text(size=10, angle = 90),
             legend.position = "none",
             plot.title = element_text(size =20,hjust = 0.5))+
       ggtitle("Average Income by Education Level")
     
+    ggplotly(p)
+    
   })
+  
+  
+  output$plot2a <- renderPlot({
+    
+    selected_edu_1 = NULL
+    if(!is.null(event_data("plotly_click"))){
+      selected_key_1<- event_data("plotly_click")$key
+      selected_edu_1 <- unlist(strsplit(toString(selected_key_1[1]),split=","))[1]
+      
+      selected_age_1 <- unlist(strsplit(toString(selected_key_1[1]),split=","))[2]
+    }
+    
+    
+    
+    if(!is.null(selected_edu_1)){
+dataset_3 %>%
+        filter(educationLevel == selected_edu_1) %>%
+        filter(agegroup == selected_age_1) %>%
+        ggplot(aes(x=YearMon, y = amount, group = revenue))+
+        geom_line(aes(color = revenue), size = 1)+
+        geom_text(aes(label = Label),nudge_x = 0.1, size = 4) +
+        ylab("Income\nand\nExpense")+
+        xlab("Month, Year")+
+        theme( panel.grid.minor.y = element_blank(),
+               panel.grid.minor.x = element_line(colour = "grey90"),
+               panel.grid.major.x = element_line(colour = "grey90"),
+               panel.grid.major.y = element_line(colour = "grey90"),
+               panel.background = element_rect(fill = "white"),
+               axis.text = element_text(size =12),
+               axis.line = element_line(color="grey25", size = 0.02),
+               axis.title.x = element_text(size=14),
+               axis.title.y = element_text(size=14, angle = 0),
+               legend.position = "none",
+               plot.title = element_text(size =20,hjust = 0.5))+
+        ggtitle(paste0("Income and Expense, Education = ", selected_edu_1, ", Age Group = ", selected_age_1))+
+        scale_y_continuous(breaks = seq(0, 10000, by = 2000), limits = c(0, 10000))
+
+
+    }
+  })
+  
   
   plot3_data <- reactive({
     
@@ -929,162 +952,10 @@ server <- function(input, output) {
             legend.title = element_text(size =16),
             legend.text = element_text(size = 16),
             strip.text.x = element_text(size = 14),
-            plot.title = element_text(size = 20, hjust = 0.5))+
+            plot.title = element_text(size = 14, hjust = 0.5))+
       ggtitle("Average Daily Expense of Residents")
   })
   
-  plot4_data <- reactive({
-    
-    req(input$prededulevel)
-    req(input$predagelevel)
-    req(input$predmodel)
-    req(input$predperiod)
-    
-    if(input$prededulevel == 'All' && input$predagelevel == 'All')
-    {
-      dataset_5 <- dataset_1
-    }
-    else if(input$prededulevel == 'All' && input$predagelevel != 'All'){
-      dataset_5 <- dataset_1%>%
-        filter(agegroup == input$predagelevel) 
-    }
-    else if(input$prededulevel != 'All' && input$predagelevel == 'All'){
-      dataset_5 <- dataset_1%>%
-        filter(educationLevel == input$prededulevel)
-    }
-    else{
-      dataset_5 <- dataset_1%>%
-        filter(educationLevel == input$prededulevel) %>%
-        filter(agegroup == input$predagelevel) 
-    }
-    
-    forecast_data <- dataset_5 %>%
-      mutate(Time = yearmonth(timestamp))%>%
-      filter(Time < yearmonth("2023 May")) %>%
-      group_by(Time,participantId) %>%
-      summarise(income = sum(ifelse(amount > 0,amount,0))) %>%
-      ungroup() %>%
-      group_by(Time) %>%
-      summarise(income = mean(income))%>%
-      ungroup()
-    
-    forecast_data_1 <- as_tsibble(forecast_data, index = Time)
-
-    return(forecast_data_1)
-    
-  })
-  
-  output$plot4 <- renderPlot({
-    
-    data_for_plot4 <- plot4_data()
-    
-    predictionModel <- req(input$predmodel)
-    
-    if(predictionModel == "ARIMA")
-    {
-      data_for_plot4%>%
-        model(ARIMA(income)) %>%
-        forecast(h = input$predperiod) %>%
-        autoplot(data_for_plot4) +
-        theme_light()
-    }
-    else if(predictionModel == "ETS")
-    {
-      data_for_plot4%>%
-        model(ETS(income)) %>%
-        forecast(h = input$predperiod) %>%
-        autoplot(data_for_plot4) +
-        theme_light()
-    }
-    else if(predictionModel =="TSLM")
-    {
-      data_for_plot4%>%
-        model(TSLM(income~trend())) %>%
-        forecast(h = input$predperiod) %>%
-        autoplot(data_for_plot4) +
-        theme_light()
-    }
-    else if(predictionModel =="AR")
-    {
-      data_for_plot4%>%
-        model(AR(income)) %>%
-        forecast(h = input$predperiod) %>%
-        autoplot(data_for_plot4) +
-        theme_light()
-    }
-  })
-  
-  output$selection <- DT::renderDataTable({
-    
-    data_for_plot4 <- plot4_data()
-    
-    
-    if (input$predmodel == "ARIMA"){
-      
-      fit1 <- data_for_plot4 %>%
-        model(ARIMA(income))
-      
-      accuracy(fit1)
-      
-    }
-    else if (input$predmodel == "ETS"){
-      
-      fit1 <- data_for_plot4 %>%
-        model(ETS(income))
-      
-      accuracy(fit1)
-      
-    }
-    else if (input$predmodel == "TSLM"){
-      
-      fit1 <- data_for_plot4 %>%
-        model(TSLM(income~trend()))
-      
-      accuracy(fit1)
-      
-    }
-    else if (input$predmodel == "AR"){
-      
-      fit1 <- data_for_plot4 %>%
-        model(AR(income))
-      
-      accuracy(fit1)
-      
-    }
-  })
-  
-  output$residuals <- renderPlot({
-    data_for_plot4 <- plot4_data()
-
-    if (input$predmodel == "ARIMA"){
-      
-      data_for_plot4 %>%
-        model(ARIMA(income)) %>%
-        gg_tsresiduals() +
-        labs(title = "Diagnostics")
-    }
-    
-    else if (input$predmodel == "ETS"){
-      data_for_plot4 %>%
-        model(ETS(income)) %>%
-        gg_tsresiduals() +
-        labs(title = "Diagnostics")
-    }
-    
-    else if (input$predmodel == "TSLM"){
-      data_for_plot4 %>%
-        model(TSLM(income ~trend())) %>%
-        gg_tsresiduals() +
-        labs(title = "Diagnostics")
-    }
-    
-    else if (input$predmodel == "AR"){
-      data_for_plot4 %>%
-        model(AR(income)) %>%
-        gg_tsresiduals() +
-        labs(title = "Diagnostics")
-    }
-  })
   
   ##### End of Q2 Server #####
   

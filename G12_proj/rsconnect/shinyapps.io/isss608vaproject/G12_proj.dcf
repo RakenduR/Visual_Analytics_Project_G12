@@ -4,11 +4,11 @@ username:
 account: isss608vaproject
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
-appId: 6585560
-bundleId: 6065441
+appId: 6594201
+bundleId: 6070931
 url: https://isss608vaproject.shinyapps.io/G12_proj/
-when: 1656851152.39488
-lastSyncTime: 1656851152.39488
+when: 1657026252.10629
+lastSyncTime: 1657026252.10629
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: Image/img.jpg
+ignoredFiles: Q1_code.Rmd|www/img.png
