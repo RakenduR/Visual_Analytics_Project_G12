@@ -1,0 +1,208 @@
+---
+title: "Q1_Code"
+author: "Rakendu"
+date: '2022-07-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+pacman::p_load(shiny,tidyverse,lubridate,ggthemes,hrbrthemes,ggdist,gghalves,
+              ggridges,zoo,ggrepel,ggiraph,gganimate,scales,shiny, shinydashboard, shinythemes,
+              tsibble,tseries,plotly,ggstatsplot,forecast,tools,shinyWidgets,readxl,bslib,patchwork,tmap, sf,
+              rstantools, reactable, reactablefmtr,gt, gtExtras, fpp3,DT)
+```
+
+```{r}
+travel_filt <- read_rds('data/rds/travel_filt.rds')
+restaurants <- read_csv("data/Restaurants.csv")
+pubs <- read_csv("data/Pubs.csv")
+```
+
+```{r}
+
+pubs_loc <- read_sf("data/Pubs.csv", options = "GEOM_POSSIBLE_NAMES=location")
+restaurants_loc <- read_sf("data/Restaurants.csv", options = "GEOM_POSSIBLE_NAMES=location")
+buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=location")
+```
+
+
+```{r}
+
+pubs_loc <- read_sf("data/Pubs.csv", options = "GEOM_POSSIBLE_NAMES=location")
+restaurants_loc <- read_sf("data/Restaurants.csv", options = "GEOM_POSSIBLE_NAMES=location")
+buildings <- read_sf("data/Buildings.csv", options = "GEOM_POSSIBLE_NAMES=location")
+
+data_travel= travel_filt %>%
+  mutate(weekday = weekdays(checkInTime),
+         day = day(checkInTime),
+         month=as.character(checkInTime,"%m %y"),
+         year = year(checkInTime),
+         monthYear = as.yearmon(checkInTime),
+         travelEndLocationId=as.character(travelEndLocationId),
+         timeSpent = checkOutTime - checkInTime,
+         travelTime = travelEndTime- travelStartTime,
+         participantId=as.character(participantId),
+         purpose=as.character(purpose))
+data_travel$timeSpent <- as.numeric(as.character(data_travel$timeSpent))
+data_travel$travelTime <- as.numeric(as.character(data_travel$travelTime))
+
+data_travel <- data_travel[,c("participantId","travelStartLocationId", "travelEndLocationId", "purpose",  "amountSpent","timeSpent","travelTime","weekday","day","month","year","monthYear")]
+
+group_pub <-merge(x=data_travel, y=pubs, by.x = "travelEndLocationId", by.y = "pubId")
+group_pub$venue <- "Pub"
+group_pub$foodCost <- 0.00
+
+group_restaurant<-merge(x=data_travel, y=restaurants, by.x = 'travelEndLocationId', by.y =  'restaurantId')
+group_restaurant$venue <- "Restaurant"
+group_restaurant$hourlyCost <- 0.00
+
+group_bind <-rbind(group_pub, group_restaurant)
+
+group <- group_bind[order(group_bind$monthYear), ]
+
+period <- unique(na.omit(group$monthYear))
+
+participant <- unique(na.omit(group$participantId))
+
+venueid_pub <- unique(na.omit(group_pub$travelEndLocationId))
+venueid_rest <- unique(na.omit(group_restaurant$travelEndLocationId))
+venueid <- unique(na.omit(group$travelEndLocationId))
+
+
+group_pub_loc <-merge(x=data_travel, y=pubs_loc, by.x = "travelEndLocationId", by.y = "pubId")
+group_pub_loc$venue <- "Pub"
+group_pub_loc$foodCost <- 0.00
+group_restaurant_loc<-merge(x=data_travel, y=restaurants_loc, by.x = 'travelEndLocationId', by.y =  'restaurantId')
+group_restaurant_loc$venue <- "Restaurant"
+group_restaurant_loc$hourlyCost <- 0.00
+group_loc <-rbind(group_pub_loc, group_restaurant_loc)
+
+group_spars <- group
+group_spars$Venue <- group_spars$travelEndLocationId
+```
+
+
+```{r}
+
+write_rds(group,"data/rds/group.rds")
+write_rds(group_loc,"data/rds/group_loc.rds")
+write_rds(venueid_pub,"data/rds/venueid_pub.rds")
+write_rds(venueid_rest,"data/rds/venueid_rest.rds")
+write_rds(period,"data/rds/period.rds")
+
+
+```
+
+
+```{r}
+
+group <- read_rds("data/rds/group.rds")
+group_loc <- read_rds("data/rds/group_loc.rds")
+
+venueid_pub <- read_rds("data/rds/venueid_pub.rds")
+venueid_rest <- read_rds("data/rds/venueid_rest.rds")
+period <- read_rds("data/rds/period.rds")
+
+
+```
+
+```{r}
+group_spars <- group
+group_spars$Venue <- group_spars$travelEndLocationId
+
+
+```
+
+
+```{r Change in revenue}
+      p <- group %>%
+      filter(monthYear == "Mar 2022", venue == "Pub" ) %>%
+      group_by(day, travelEndLocationId) %>%
+      summarise(amountSpent = (sum(amountSpent))) %>%
+      ggplot(aes_string(x="day", y="amountSpent", group="travelEndLocationId")) +
+        
+      geom_line(aes(color=travelEndLocationId),show.legend = TRUE)+
+      labs(
+        y= 'Revenue (Thousands$)',
+        x= print("day"),
+        title = print("Pub"),
+        caption = "Ohio USA"
+      ) +
+      theme_minimal()+
+      theme(axis.ticks.x= element_blank(),
+            panel.background= element_blank(), 
+            legend.background = element_blank(),
+            plot.title = element_text(size=12, face="bold",hjust = 0.5),
+            plot.subtitle = element_text(hjust = 1),
+            plot.caption = element_text(hjust = 0),
+            axis.title.y= element_text(angle=0))
+    
+    ggplotly(p, tooltip = c("text"))
+```
+
+```{r Group Change in Revenue}
+
+   boxplot  <- group %>%
+      filter(monthYear == "Mar 2022", venue == "Pub" ) %>%
+      group_by(day, travelEndLocationId ) %>%
+      summarise(amountSpent = (sum(amountSpent))) %>%
+      ggplot(aes_string(x="day", y="amountSpent", group="travelEndLocationId", color ="day")) + 
+      geom_boxplot() +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 60),
+            axis.title.x = element_blank())+
+      labs(
+        y= 'Revenue (Thousands$)',
+        x= "day",
+        title = "Pub",
+        caption = "Ohio USA"
+      ) 
+    
+    ggplotly(boxplot)
+
+```
+
+
+```{r sparkline}
+
+ report <- group_spars %>%
+      filter(year == 2022, venue == "Pub") %>%
+      group_by(Venue, monthYear) %>%
+      summarise(amountSpent = sum(amountSpent)) %>%
+      ungroup()
+    
+    spark <- report %>%
+      group_by(Venue) %>%
+      summarize('Monthly Revenue' = list(amountSpent), 
+                .groups = "drop")
+    
+    revenue <- report %>% 
+      group_by(Venue) %>% 
+      summarise("Min" = min(amountSpent, na.rm = T),
+                "Max" = max(amountSpent, na.rm = T),
+                "Average" = mean(amountSpent, na.rm = T)
+      )
+    revenue_data = left_join(revenue, spark)
+    revenue_data %>%
+      gt() %>%
+      gt_plt_sparkline('Monthly Revenue')
+    
+```
+
+```{r ANOVA}
+    set.seed(1234)
+    
+    p <- group %>%
+      filter(monthYear == "Mar 2022", venue == "Pub")%>%
+      filter(travelEndLocationId == "1342", amountSpent <= "1000")
+```
+
+
+```{r Correlation}
+
+```
