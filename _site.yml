@@ -13,4 +13,6 @@ navbar:
       href: "https://isss608vaproject.shinyapps.io/G12_proj/"
     - text: "Poster"
       href: "ISS608_Group12_Poster.pdf"
+    - text: "Rshiny"
+      href: "G12_proj/RShiny_userguide.html"
 output: distill::distill_article
