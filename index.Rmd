@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ### Jeremiah Lam | Shachi Raodeo | Rakendu Ramesh
 
-A city or country's economy plays an integral role in society, as businesses and individuals livelihoods depend on it. In an economic recession, retrenchments are inevitable and businesses see a lost in revenue, which may subsequently see them close down. Conversely, in an economic boom, there's an increase in both income and spending across businesses and individuals. Within an economy, there are patterns we can observe, for example, how are businesses or sectors performing, how much are individuals spending, who are businesses employing.
+A city or country's economy plays an integral role in society, as businesses and individuals livelihoods depend on it. In an economic recession, retrenchments are inevitable and businesses see a loss in revenue, which may subsequently see them close down. Conversely, in an economic boom, there's an increase in both income and spending across businesses and individuals. Within an economy, there are patterns we can observe, for example, how are businesses or sectors performing, how much are individuals spending, who are businesses employing.
 
 ## Introduction
 
@@ -29,8 +29,6 @@ With the creation of a RShiny app, users will be able to:
 - Visualise which are the prosperous and struggling businesses (i.e. pub, restaurants) in the city of Engagement, Ohio for the period data was collected from its participants
 
 - Visualise the income and overall cost of living for participants across different age groups and education levels, and analyse patterns across these groups living in the city of Engagement, Ohio for the period data was collected from them
-
-- Predict the income of participants living in the city of Engagement, for the next 6-18 months, based on their age and education level, from the time data was collected from them
 
 - Visualise the health of various employers within the city, based on the jobs they're offering to various education levels and their hourly rate
 
@@ -56,8 +54,6 @@ In order to visualise the financial health of the city effectively, a multi-pron
 This will be conducted using line charts, histogram and barcharts, boxplots, sparklines and maps.
 
 Next, correlation analysis was conducted between average age hired for a job, and the offered hourly rate or the number of jobs they were hired for. This was to glean any insights of any potential correlations between them. Also, a one-way ANOVA test was done between hourly wage, and either education level or age groups for average age hired, to see if there was any statistical evidence proving that there is a difference in mean hourly rate within different education levels or age groups (i.e. certain education levels getting paid more, certain age groups are getting paid more).
-
-Lastly, predictive analysis was conducted on the historical data provided, in order to forecast future income of participants of different age group and education levels. This was conducted by employing a plethora of models such as ARIMA, ETS, TSLM and autoregressive models.
 
 We hope that through our app, users will be able to better appreciate the financial health of the city of Engagement, Ohio, as well as use our app to forecast the income of its participants to better anticipate the economic state of the city.
 

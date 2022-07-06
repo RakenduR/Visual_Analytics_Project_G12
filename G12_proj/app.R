@@ -35,18 +35,15 @@ group_spars <- group
 group_spars$Venue <- group_spars$travelEndLocationId
 
 ##### Q2 #####
+
+# data for stacked area plot
 dataset_1 <- read_rds("data/rds/dataset_1.rds")
+
+# data for facet line plot for income and expense
 dataset_3 <- read_rds("data/rds/dataset_3.rds")
+
+# data for calendar heatmap
 dataset_4 <- read_rds("data/rds/dataset_4.rds")
-agegroup_list <- unique(dataset_1$agegroup)
-edutitle <- c("All",as.character(unique(dataset_1$educationLevel)))
-educode <- c("All",as.character(unique(dataset_1$educationLevel)))
-names(educode) <- edutitle
-
-agetitle <- c("All",as.character(unique(dataset_1$agegroup)))
-agecode <- c("All",as.character(unique(dataset_1$agegroup)))
-names(agecode) <- agetitle
-
 
 ##### Q3 #####
 
@@ -72,22 +69,6 @@ ui <- fluidPage(
   theme=shinytheme("united"),
   id = "navbarID",
   tabPanel(title = "Overview",icon = icon("globe"),
-           tags$head(
-             tags$style(
-               "
-            .title 
-            {
-                background:url('img.jpg');
-                background-repeat: repeat;
-                opacity:1;
-                height: 100px;
-
-            }
-            "
-             )
-           ),
-           
-headerPanel(h1(class = "title")),
            mainPanel(width = 12,
                      fluidRow(
                        column(width = 10,
@@ -438,7 +419,7 @@ navbarMenu("Finance",icon = icon("chart-line"),
                                             plotlyOutput("plot2",
                                                          height = "500px",
                                                          width = "1300px"),
-                                       h2("Click on a plot to enlarge")
+                                       h4("Click on a plot to enlarge")
 
                                 ),
                                 column(width = 2)
@@ -895,7 +876,7 @@ dataset_3 %>%
                axis.title.x = element_text(size=14),
                axis.title.y = element_text(size=14, angle = 0),
                legend.position = "none",
-               plot.title = element_text(size =20,hjust = 0.5))+
+               plot.title = element_text(size =16,hjust = 0.5))+
         ggtitle(paste0("Income and Expense, Education = ", selected_edu_1, ", Age Group = ", selected_age_1))+
         scale_y_continuous(breaks = seq(0, 10000, by = 2000), limits = c(0, 10000))
 

@@ -8,7 +8,7 @@ navbar:
     - text: "Home"
       href: index.html
     - text: "Proposal"
-      href: "https://group12-va-project.netlify.app/#proposal"
+      href: "proposal/Proposal.html"
     - text: "Rshiny App"
       href: "https://isss608vaproject.shinyapps.io/G12_proj/"
     - text: "Poster"
