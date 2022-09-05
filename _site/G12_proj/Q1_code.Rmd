@@ -89,8 +89,21 @@ group_spars$Venue <- group_spars$travelEndLocationId
 
 ```{r}
 
+group <- group %>%
+  filter(participantId <= 200)
+
+group_loc <- group_loc %>%
+  filter(participantId <= 200)
+```
+
+```{r}
+
 write_rds(group,"data/rds/group.rds")
 write_rds(group_loc,"data/rds/group_loc.rds")
+```
+
+```{r}
+
 write_rds(venueid_pub,"data/rds/venueid_pub.rds")
 write_rds(venueid_rest,"data/rds/venueid_rest.rds")
 write_rds(period,"data/rds/period.rds")
