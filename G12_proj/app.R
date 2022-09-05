@@ -967,7 +967,7 @@ dataset_3 %>%
   jjobs1 <- jjobs%>%
     mutate(hourlyRate = as.numeric(hourlyRate)) %>%
     mutate(Turnover = as.numeric(Turnover)) %>%
-    rename('AverageAgeHired'='mean.age.') %>%
+    rename('AverageAgeHired'='mean(age)') %>%
     mutate(AverageAgeHired = as.numeric(AverageAgeHired))
   
   jjobs2 <- reactive({
