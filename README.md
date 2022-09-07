@@ -23,10 +23,10 @@ Anticipating rapid growth, the city of Engagement, Ohio USA is doing a participa
 
 **Challenge 3**: Economic considers the financial health of the city. Over time, are businesses growing or shrinking? How are people changing jobs? Are standards of living improving or declining over time? <br />
 
-Consider the financial status of Engagement’s businesses and residents, and use visual analytic techniques to address these questions.
+Consider the financial status of Engagement’s businesses and residents, and use visual analytic techniques to address these questions.  <br />
 
-Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
-How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns? Describe your rationale for your answers. Limit your response to 10 images and 500 words.
-Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover? Limit your response to 10 images and 500 words. <br />
+* Over the period covered by the dataset, which businesses appear to be more prosperous? Which appear to be struggling? <br />
+* How does the financial health of the residents change over the period covered by the dataset? How do wages compare to the overall cost of living in Engagement? Are there groups that appear to exhibit similar patterns?  <br />
+* Describe the health of the various employers within the city limits. What employment patterns do you observe? Do you notice any areas of particularly high or low turnover?  <br />
 
 
